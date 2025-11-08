@@ -16,14 +16,18 @@ To experimentally determine the onset of chaos, we will implement a collection o
 # Code Structure
 `map` folder:
 - `standardMap.py` will contain the class implementation of the standard map with a function to iterate from an initial condition
+
 `plots` folder:
 - `mapEval.py` will contain the class implementation for evaluating different aspects of the batch of standard map runs
 - `mapPlot.py` will contain the plotting function for the phase space plots and bifurcation diagrams
 - This folder will also contain plots for different values of $K$ in labeled subfolders.
+
 `results` folder:
 - These will store the raw arrays for different $K$ values as well as any miscellaneous data used in the plotting (subfolders expected).
+
 ` unitTests` folder:
 - These will contain scripts to check the implementation of the Standard Map class. Useful for anyone who wants to modify it and see if their changes work.
+
 `map.ipynb` will contain the top-level report on our results
 
 # Planned Contributions

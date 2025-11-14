@@ -1,4 +1,7 @@
 # Unit tests using the pytest library
+import numpy as np
+from map import standardMap as sMap
+
 
 # Planned tests:
 # # Initialization:
@@ -12,6 +15,21 @@
 # ### default
 # ### user
 # ## Check list properly initialized
+def test_initialization_K():
+    K = 0.75
+    obj = sMap(K=K)
+    assert obj.K == K
+    K = 3
+    obj = sMap(K=K)
+    assert obj.K == K
+    K = -1
+    try:
+        obj = sMap(K=K)
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("K is invalid")
+
 
 # # Simulate:
 # ## I_0
@@ -43,4 +61,4 @@
 # ### user, double
 
 # # Clear:
-# ## 
+# ##

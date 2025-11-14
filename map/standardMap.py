@@ -2,9 +2,10 @@
 # numpy
 import numpy as np
 
+
 # Class (no inheritance)
 # standardMap
-class standardMap():
+class standardMap:
 
     # Initialization
     # User can set K, nIters, random seed
@@ -15,19 +16,16 @@ class standardMap():
     # and theta
     # Call the list "runs"
     # Initialization makes an empty list
-    def __init__(self, K: float=1, nIters: int=500, seed=None) -> None:
+    def __init__(self, K: float = 1.0, nIters: int = 500, seed=None) -> None:
         # Checks for K and nIters
-        assert isinstance(K, float)
-        assert isinstance(nIters, int)
         assert K >= 0
-        assert nIters > 0
+        assert nIters >= 1
         # Add to class
-        self.K = K
-        self.nIters = nIters
+        self.K = float(K)
+        self.nIters = int(nIters)
         self.seed = seed
         # Initialize the list of dicts
         self.runs = []
-
 
     # Function: simulate
     # Option to append new run or overwrite -- default is append
@@ -43,26 +41,35 @@ class standardMap():
             assert ic > 0
             state = np.zeros((ic, 2, self.nIters))
             np.random.seed(self.seed)
-            state[..., 0] = np.random.uniform(0, 2*np.pi, (ic, 2, 1), )
+            state[..., 0] = np.random.uniform(
+                0,
+                2 * np.pi,
+                (ic, 2, 1),
+            )
         elif isinstance(ic, np.ndarray):
             assert len(ic) > 2
             assert len(ic) % 2 == 0
             state = np.zeros((len(ic), 2, self.nIters))
             state[..., 0] = ic
         else:
-            raise # Appropriate error here
+            raise Exception("ic must be an integer or a batch of initial values.")
         # Run the map
         for i in range(self.nIters - 1):
-            state[:, 0, i + 1] = (state[:, 0, i] + self.K * np.sin(state[:, 1, i])) % (2 * np.pi)
+            state[:, 0, i + 1] = (state[:, 0, i] + self.K * np.sin(state[:, 1, i])) % (
+                2 * np.pi
+            )
             state[:, 1, i + 1] = (state[:, 1, i] + state[:, 0, i + 1]) % (2 * np.pi)
         # Store the run
-        run = {"K": self.K, "nIters": self.nIters, "seed": self.seed, "run": state}        
+        run = {"K": self.K, "nIters": self.nIters, "seed": self.seed, "run": state}
         if option == "append":
             self.runs.append(run)
         elif option == "overwrite":
             self.runs[-1] = run
         else:
-            raise # Appropriate error here
+            raise Exception(
+                'Invalid option. Only "append" and "overwrite" are allowed.'
+            )
+
 
 # Function: get and set K
 # Implement as callable

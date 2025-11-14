@@ -16,19 +16,40 @@ from map import standardMap as sMap
 # ### user
 # ## Check list properly initialized
 def test_initialization_K():
-    K = 0.75
-    obj = sMap(K=K)
-    assert obj.K == K
-    K = 3
-    obj = sMap(K=K)
-    assert obj.K == K
-    K = -1
+    obj = sMap()
+    assert obj.K == 1.0
+    obj = sMap(K=0.75)
+    assert obj.K == 0.75
+    obj = sMap(K=3)
+    assert obj.K == 3
     try:
-        obj = sMap(K=K)
+        obj = sMap(K=-1)
     except Exception:
         print("Not possible")
     else:
         raise Exception("K is invalid")
+
+
+def test_initialization_seed():
+    obj = sMap()
+    assert obj.seed == None
+    obj = sMap(seed=42)
+    assert obj.seed == 42
+
+
+def test_initialization_nIters():
+    obj = sMap()
+    assert obj.nIters == 500
+    obj = sMap(nIters=1)
+    assert obj.nIters == 1
+    obj = sMap(nIters=23.7)
+    assert obj.nIters == 23
+    try:
+        obj = sMap(nIters=0)
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("nIters is invalid")
 
 
 # # Simulate:

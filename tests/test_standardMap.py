@@ -78,6 +78,7 @@ def test_simulate_ic():
         obj.simulate()
         assert obj.runs[-1]["K"] == obj.K
         assert obj.runs[-1]["nIters"] == obj.nIters
+        assert obj.runs[-1]["nSim"] == 1
         assert obj.runs[-1]["run"].shape[2] == obj.nIters
         assert obj.runs[-1]["run"].shape[1] == 2
         assert np.min(obj.runs[-1]["run"]) >= 0
@@ -85,6 +86,7 @@ def test_simulate_ic():
         obj.simulate(ic=6)
         assert obj.runs[-1]["K"] == obj.K
         assert obj.runs[-1]["nIters"] == obj.nIters
+        assert obj.runs[-1]["nSim"] == 6
         assert obj.runs[-1]["run"].shape[2] == obj.nIters
         assert obj.runs[-1]["run"].shape[0] == 6
         assert np.min(obj.runs[-1]["run"]) >= 0
@@ -92,6 +94,7 @@ def test_simulate_ic():
         obj.simulate(ic=testIc)
         assert obj.runs[-1]["K"] == obj.K
         assert obj.runs[-1]["nIters"] == obj.nIters
+        assert obj.runs[-1]["nSim"] == 3
         assert obj.runs[-1]["run"].shape[2] == obj.nIters
         assert obj.runs[-1]["run"].shape[0] == 3
         assert np.min(obj.runs[-1]["run"]) >= 0
@@ -101,6 +104,7 @@ def test_simulate_ic():
         obj.simulate(ic=4, option="overwrite")
         assert obj.runs[-1]["K"] == obj.K
         assert obj.runs[-1]["nIters"] == obj.nIters
+        assert obj.runs[-1]["nSim"] == 4
         assert obj.runs[-1]["run"].shape[2] == obj.nIters
         assert obj.runs[-1]["run"].shape[0] == 4
         assert np.min(obj.runs[-1]["run"]) >= 0
@@ -108,6 +112,7 @@ def test_simulate_ic():
         assert len(obj.runs) == 3
         assert obj.runs[1]["K"] == obj.K
         assert obj.runs[1]["nIters"] == obj.nIters
+        assert obj.runs[1]["nSim"] == 6
         assert obj.runs[1]["run"].shape[2] == obj.nIters
         assert obj.runs[1]["run"].shape[0] == 6
         assert np.min(obj.runs[1]["run"]) >= 0

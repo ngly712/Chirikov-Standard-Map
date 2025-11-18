@@ -19,11 +19,11 @@ class standardMap:
     def __init__(self, K: float = 1.0, nIters: int = 500, seed=None) -> None:
         # Checks for K and nIters
         assert K >= 0
-        assert nIters >= 1
+        assert nIters > 0
         # Add to class
-        self.K = float(K)
-        self.nIters = int(nIters)
-        self.seed = seed
+        self._K = float(K)
+        self._nIters = int(nIters)
+        self._seed = seed
         # Initialize the list of dicts
         self.runs = []
 
@@ -39,8 +39,8 @@ class standardMap:
         # Initialize the array
         if isinstance(ic, int):
             assert ic > 0
-            state = np.zeros((ic, 2, self.nIters))
-            np.random.seed(self.seed)
+            state = np.zeros((ic, 2, self._nIters))
+            np.random.seed(self._seed)
             state[..., 0] = np.random.uniform(
                 0,
                 2 * np.pi,
@@ -51,18 +51,24 @@ class standardMap:
             assert ic.shape[0] > 0
             assert np.min(ic) >= 0
             assert np.max(ic) <= 2 * np.pi
-            state = np.zeros((len(ic), 2, self.nIters))
+            state = np.zeros((len(ic), 2, self._nIters))
             state[..., 0] = ic
         else:
             raise Exception("ic must be an integer or a batch of initial values.")
         # Run the map
-        for i in range(self.nIters - 1):
-            state[:, 0, i + 1] = (state[:, 0, i] + self.K * np.sin(state[:, 1, i])) % (
+        for i in range(self._nIters - 1):
+            state[:, 0, i + 1] = (state[:, 0, i] + self._K * np.sin(state[:, 1, i])) % (
                 2 * np.pi
             )
             state[:, 1, i + 1] = (state[:, 1, i] + state[:, 0, i + 1]) % (2 * np.pi)
         # Store the run
-        run = {"K": self.K, "nIters": self.nIters, "seed": self.seed, "run": state}
+        run = {
+            "K": self._K,
+            "nIters": self._nIters,
+            "seed": self._seed,
+            "run": state,
+            "nSim": state.shape[0],
+        }
         if option == "append":
             self.runs.append(run)
         elif option == "overwrite":
@@ -72,15 +78,38 @@ class standardMap:
                 'Invalid option. Only "append" and "overwrite" are allowed.'
             )
 
+    # Function: get and set K
+    # Implement as callable
+    @property
+    def K(self):
+        return self._K
 
-# Function: get and set K
-# Implement as callable
+    @K.setter
+    def K(self, K: float):
+        assert K >= 0
+        self._K = K
 
-# Function: get and set nIters
-# Implement as callable
+    # Function: get and set nIters
+    # Implement as callable
+    @property
+    def nIters(self):
+        return self._nIters
 
-# Function: get and set seed
-# Implement as callable
+    @nIters.setter
+    def nIters(self, nIters: int):
+        assert nIters > 0
+        self._nIters = nIters
+
+    # Function: get and set seed
+    # Implement as callable
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed):
+        self._seed = seed
+
 
 # Function: metadata (ALL kwargs)
 # Returns the number of runs and the range of K -- default

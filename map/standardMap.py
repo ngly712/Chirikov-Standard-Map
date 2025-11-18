@@ -148,8 +148,33 @@ class standardMap:
     # removes runs with given K (Implement checks for K): keyword is "K"
     # K can also be a range (two element array-like), inclusive
     # Must perform sanity checks for K[0] and K[1]
-    def clearRuns(self):
-        pass
+    def clearRuns(self, **options) -> None:
+        assert len(options) < 2
+        if len(options) < 1:
+            self.runs.clear()
+        key, val = options.items()
+        if key == "run":
+            del self.runs[val]
+        elif key == "K":
+            if isinstance(val, float):
+                assert val >= 0.0
+                for i in range(len(self.runs)):
+                    if self.runs[i]["K"] == val:
+                        self.runs.pop(i)
+            elif isinstance(val, tuple):
+                assert len(val) == 2
+                for i in val:
+                    assert isinstance(i, float)
+                assert val[0] < val[1]
+                for i in range(len(self.runs)):
+                    if self.runs[i]["K"] >= val[0] and self.runs[i]["K"] <= val[1]:
+                        self.runs.pop(i)
+            else:
+                raise Exception(
+                    "Only single values or an ascending tuple of two inclusive bounds are allowed."
+                )
+        else:
+            raise Exception("Only run index and K search supported.")
 
     # Function: write to CSV
     # Option to select ith array to write

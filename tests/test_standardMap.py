@@ -32,7 +32,7 @@ def test_initialization_K():
 
 def test_initialization_seed():
     obj = sMap()
-    assert obj.seed == None
+    assert obj.seed is None
     obj = sMap(seed=42)
     assert obj.seed == 42
 
@@ -135,6 +135,7 @@ def test_simulate_ic():
             print("Not possible")
         else:
             raise Exception("Invalic ic array values.")
+        print(obj)
 
 
 # # Getters and setters:
@@ -144,6 +145,43 @@ def test_simulate_ic():
 # ### same as initialization
 # ## seed
 # ### same as initialization
+def test_mid_K():
+    obj = sMap()
+    assert obj.K == 1.0
+    obj.K = 0.75
+    assert obj.K == 0.75
+    obj.K = 3
+    assert obj.K == 3.0
+    try:
+        obj.K = -1
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid K value passed")
+    print(obj)
+
+
+def test_mid_nIters():
+    obj = sMap()
+    assert obj.nIters == 500
+    obj.nIters = 1
+    assert obj.nIters == 1
+    obj.nIters = 23.7
+    assert obj.nIters == 23
+    try:
+        obj.nIters = 0
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("nIters is invalid")
+
+
+def test_mid_seed():
+    obj = sMap()
+    assert obj.seed is None
+    obj.seed = 42
+    assert obj.seed == 42
+
 
 # # Metadata:
 # ## K range check

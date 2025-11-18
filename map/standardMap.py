@@ -87,7 +87,7 @@ class standardMap:
     @K.setter
     def K(self, K: float):
         assert K >= 0
-        self._K = K
+        self._K = float(K)
 
     # Function: get and set nIters
     # Implement as callable
@@ -98,7 +98,7 @@ class standardMap:
     @nIters.setter
     def nIters(self, nIters: int):
         assert nIters > 0
-        self._nIters = nIters
+        self._nIters = int(nIters)
 
     # Function: get and set seed
     # Implement as callable
@@ -110,43 +110,57 @@ class standardMap:
     def seed(self, seed):
         self._seed = seed
 
+    # Function: metadata (ALL kwargs)
+    # Returns the number of runs and the range of K -- default
+    # Returns the K, initial condition, and length of ith run in list
+    # (Implement checks for i): keyword is "run" {values start at 1}
+    # i can also be a range (two element array-like), inclusive
+    # Must perform sanity checks for i[0] and i[1]
+    # Returns the indices of runs with a given K, same metadata as "run"
+    # (same K checks): return "None" if not found, keyword is "K"
+    # K can also be a range (two element array-like), check is inclusive
+    # Must perform sanity checks for K[0] and K[1]
+    # Returns the indices of runs with a given length, same metadata as "run"
+    # (same nIters checks): return "None" if not found, keyword is "N"
+    # nIters can also be a range (two element array-like), check is inclusive
+    # Must perform sanity checks for nIters[0] and nIters[1]
 
-# Function: metadata (ALL kwargs)
-# Returns the number of runs and the range of K -- default
-# Returns the K, initial condition, and length of ith run in list
-# (Implement checks for i): keyword is "run" {values start at 1}
-# i can also be a range (two element array-like), inclusive
-# Must perform sanity checks for i[0] and i[1]
-# Returns the indices of runs with a given K, same metadata as "run"
-# (same K checks): return "None" if not found, keyword is "K"
-# K can also be a range (two element array-like), check is inclusive
-# Must perform sanity checks for K[0] and K[1]
-# Returns the indices of runs with a given length, same metadata as "run"
-# (same nIters checks): return "None" if not found, keyword is "N"
-# nIters can also be a range (two element array-like), check is inclusive
-# Must perform sanity checks for nIters[0] and nIters[1]
+    # Redundancy: __str__
+    # Returns the number of runs and the range of K
+    def __str__(self) -> str:
+        if len(self.runs) > 0:
+            minK = self.runs[0]["K"]
+            maxK = self.runs[0]["K"]
+            for run in self.runs:
+                if run["K"] < minK:
+                    minK = run["K"]
+                if run["K"] > maxK:
+                    maxK = run["K"]
+            return f"Number of runs: {len(self.runs)}\nRange of K: [{minK}, {maxK}]"
+        return f"Current K: {self._K}\nCurrent run length: {self._nIters}\nNo runs yet."
 
-# Redundancy: __str__
-# Returns the number of runs and the range of K
+    # Function: clearRuns
+    # does not remove current values of K/nIter/seed in object
+    # removes all runs from history -- default
+    # removes ith runs (Implement checks for i): keyword is "run"
+    # i can also be a range (two element array-like), inclusive
+    # Must perform sanity checks for i[0] and i[1]
+    # removes runs with given K (Implement checks for K): keyword is "K"
+    # K can also be a range (two element array-like), inclusive
+    # Must perform sanity checks for K[0] and K[1]
+    def clearRuns(self):
+        pass
 
-# Function: clearRuns
-# does not remove current values of K/nIter/seed in object
-# removes all runs from history -- default
-# removes ith runs (Implement checks for i): keyword is "run"
-# i can also be a range (two element array-like), inclusive
-# Must perform sanity checks for i[0] and i[1]
-# removes runs with given K (Implement checks for K): keyword is "K"
-# K can also be a range (two element array-like), inclusive
-# Must perform sanity checks for K[0] and K[1]
-
-# Function: write to CSV
-# Option to select ith array to write
-# i can be a range
-# Option to write ALL arrays to CSVs -- default
-# Supply kwargs to savetxt function
-# Reserve kwarg "name" as filename (can be path)
-# Default has header txt of "K = [val]"
-# Default saves I then theta w/ col headers "I,theta"
-# Default names file "[K]-[val]-len-[nIters].csv"
-# Default adds " ([number])" if filename taken
-# Default save location is "results/csvs"
+    # Function: write to CSV
+    # Option to select ith array to write
+    # i can be a range
+    # Option to write ALL arrays to CSVs -- default
+    # Supply kwargs to savetxt function
+    # Reserve kwarg "name" as filename (can be path)
+    # Default has header txt of "K = [val]"
+    # Default saves I then theta w/ col headers "I,theta"
+    # Default names file "[K]-[val]-len-[nIters].csv"
+    # Default adds " ([number])" if filename taken
+    # Default save location is "results/csvs"
+    def write(self):
+        pass

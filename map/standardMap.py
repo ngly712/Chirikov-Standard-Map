@@ -5,7 +5,7 @@ import numpy as np
 
 # Class (no inheritance)
 # standardMap
-class standardMap:
+class StandardMap:
 
     # Initialization
     # User can set K, nIters, random seed

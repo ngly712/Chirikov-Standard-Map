@@ -1,6 +1,6 @@
 # Unit tests using the pytest library
 import numpy as np
-from map.standardMap import standardMap as sMap
+from map.standardMap import StandardMap as sMap
 
 
 # Planned tests:
@@ -211,4 +211,6 @@ def test_mid_seed():
 # ### user, single
 # ### user, double
 def test_clear_ind():
-    assert True
+    obj = sMap()
+    for i in range()
+    obj.simulate()

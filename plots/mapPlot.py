@@ -1,5 +1,10 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from map.standardMap import StandardMap
+
+
 def plot_phase_generic(run, mode="phase", traj_index=0, point_size=0.1, title=None):
-    
+
     # Plots phase-space data from a standardMap run.
     # -------------------------------------------------------------------
     # Parameters:
@@ -13,7 +18,7 @@ def plot_phase_generic(run, mode="phase", traj_index=0, point_size=0.1, title=No
     # point_size: float
     #     Matplotlib scatter marker size.
     # title: str or None
-    #     Optional figure title. Defaults to "Phase Space Plot" for mode = 'phase' and 
+    #     Optional figure title. Defaults to "Phase Space Plot" for mode = 'phase' and
     #     "Poincaré Section (trajectory {traj_index})" for mode = 'poincare'
     # -------------------------------------------------------------------
 
@@ -45,29 +50,29 @@ def plot_phase_generic(run, mode="phase", traj_index=0, point_size=0.1, title=No
 
         for k in range(nSim):
             color = color_choices[rand_colors[k]]
-            theta_vals = run[k, 1,:]
-            I_vals = run[k, 0,:]
+            theta_vals = run[k, 1, :]
+            I_vals = run[k, 0, :]
             plt.scatter(theta_vals, I_vals, s=point_size, color=color)
 
-    else: 
-        theta_traj = run[traj_index, 1,:]
-        I_traj = run[traj_index, 0,:]
+    else:
+        theta_traj = run[traj_index, 1, :]
+        I_traj = run[traj_index, 0, :]
         plt.scatter(theta_traj, I_traj, s=point_size, color="black")
 
     plt.xlabel(r"$\theta$")
     plt.ylabel(r"$I$")
     plt.title(title)
-    plt.xlim(0, 2*np.pi)
-    plt.ylim(0, 2*np.pi)
+    plt.xlim(0, 2 * np.pi)
+    plt.ylim(0, 2 * np.pi)
     plt.tight_layout()
     plt.show()
 
 
 def compute_bifurcation(Ks, ic, nIters=2000, burn_in=500, seed=None):
-    
+
     # Helper function for the plot_bifurcation function.
-    # This function computes bifurcation data (I values and corresponding 
-    # k values) for a StandardMap instance. 
+    # This function computes bifurcation data (I values and corresponding
+    # k values) for a StandardMap instance.
     # Parameters:
     # ---------------------------------------------------------------------
     # Ks: np.ndarray
@@ -85,18 +90,18 @@ def compute_bifurcation(Ks, ic, nIters=2000, burn_in=500, seed=None):
     #     K values repeated for each late-time point I_n.
     # bifI : np.ndarray
     #     Corresponding I_n values.
-   
+
     bifK = []
     bifI = []
 
-    m = standardMap(K=0.0, nIters=nIters, seed=seed)
+    m = StandardMap(K=0.0, nIters=nIters, seed=seed)
 
     for K in Ks:
         m.K = K
         m.simulate(ic=ic)
 
-        run = m.runs[-1]["run"]  
-        I_traj = run[0, 0, :]        
+        run = m.runs[-1]["run"]
+        I_traj = run[0, 0, :]
 
         I_asym = I_traj[burn_in:]
 
@@ -106,12 +111,20 @@ def compute_bifurcation(Ks, ic, nIters=2000, burn_in=500, seed=None):
     return np.array(bifK), np.array(bifI)
 
 
-def plot_bifurcation(Ks, ic, nIters=2000, burn_in=500, K_min=None, K_max=None, title="Bifurcation Diagram of the Standard Map"):
-    
+def plot_bifurcation(
+    Ks,
+    ic,
+    nIters=2000,
+    burn_in=500,
+    K_min=None,
+    K_max=None,
+    title="Bifurcation Diagram of the Standard Map",
+):
+
     # k_min and k_max set the range for K on the bifurcation plot. Both default to None.
 
-    bifK, bifI = compute_bifurcation(Ks, ic, nIters=nIters, burn_in=burn_in )
-    
+    bifK, bifI = compute_bifurcation(Ks, ic, nIters=nIters, burn_in=burn_in)
+
     if K_min is not None or K_max is not None:
         if K_min is None:
             K_min = np.min(Ks)
@@ -128,5 +141,3 @@ def plot_bifurcation(Ks, ic, nIters=2000, burn_in=500, K_min=None, K_max=None, t
     plt.title(title)
     plt.tight_layout()
     plt.show()
-
-                       

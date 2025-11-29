@@ -48,3 +48,96 @@ Optional:
 6. Modify `mapEval.py` to account for additional variables like the kick strength and duration.
 7. Perform a similar analysis of the chaotic behavior for the kicked rotator.
 8. Add results to `map.ipynb`.
+
+---
+
+# Using the Code
+
+This repository is organized into three main Python modules:
+
+- `map/standardMap.py` — defines the `StandardMap` class, which runs simulations of the Chirikov standard map and stores results in a list of runs (`.runs`).
+- `plot/mapEval.py` — defines the `MapEvaluator` class, which provides helper methods to extract data from `StandardMap.runs` for plotting (tails, bifurcation data, phase space, etc.).
+- `plot/mapPlot.py` — contains plotting utilities for phase–space plots and bifurcation diagrams.
+
+## 1. Running a Simulation
+
+```python
+from map.standardMap import StandardMap
+
+# Create a StandardMap instance
+aMap = StandardMap(K=0.5, nIters=2000, seed=42)
+
+# Run a simulation with 100 random initial conditions
+aMap.simulate(ic=100)
+
+# The results are stored in aMap.runs
+print(len(aMap.runs))
+print(aMap.runs[0]["run"].shape)
+```
+
+## 2. Evaluating Simulation Data
+
+```python
+from plot.mapEval import MapEvaluator
+
+evaluator = MapEvaluator(aMap.runs)
+```
+
+Extracting arrays:
+
+```python
+theta = evaluator.getTheta(run_idx=0)
+I_vals = evaluator.getI(run_idx=0)
+theta_tail = evaluator.thetaTail(0, n_tail=200)
+I_tail = evaluator.ITail(0, n_tail=200)
+```
+
+Bifurcation:
+
+```python
+K_theta, theta_bif = evaluator.thetaBifData(n_tail=200)
+K_I, I_bif = evaluator.IBifData(n_tail=200)
+```
+
+Phase space:
+
+```python
+I_phase, theta_phase = evaluator.phaseSpaceData(run_idx=0, n_tail=200)
+```
+
+## 3. Plotting
+
+```python
+from plot.mapPlot import (
+    plot_phase_generic,
+    plot_phase_tail,
+    plot_bifurcation_theta,
+    plot_bifurcation_I,
+)
+```
+
+Phase-space plot:
+
+```python
+run0 = aMap.runs[0]["run"]
+plot_phase_generic(run0, mode="phase", point_size=0.1)
+```
+
+Tail-only:
+
+```python
+plot_phase_tail(evaluator, run_idx=0, n_tail=200, point_size=0.1)
+```
+
+Bifurcation:
+
+```python
+plot_bifurcation_theta(evaluator, n_tail=200)
+plot_bifurcation_I(evaluator, n_tail=200)
+```
+
+## 4. Suggested Workflow in `map.ipynb`
+
+1. Simulate using `StandardMap`.
+2. Pass `aMap.runs` into `MapEvaluator`.
+3. Use functions from `mapPlot.py` to visualize.

@@ -201,10 +201,10 @@ class StandardMap:
                 for i in range(len(self.runs)):
                     if self.runs[i]["K"] == options["K"]:
                         ind.append(i)
-                        print(f"Run {i + 1} cleared.")
+                        print(f"Run {i} cleared.")
                 if len(ind) == 0:
                     print(f"No runs with K = {options["K"]} found.")
-                for j in ind:
+                for j in sorted(ind, reverse=True):
                     del self.runs[j]
             # Range of Ks cleared
             elif isinstance(options["K"], tuple):
@@ -219,12 +219,12 @@ class StandardMap:
                         and self.runs[i]["K"] <= options["K"][1]
                     ):
                         ind.append(i)
-                        print(f"Run {i + 1} cleared.")
+                        print(f"Run {i} cleared.")
                 if len(ind) == 0:
                     print(
                         f"No runs within K = [{options["K"][0]}, {options["K"][1]}] found."
                     )
-                for j in ind:
+                for j in sorted(ind, reverse=True):
                     del self.runs[j]
             else:
                 raise Exception(
@@ -238,15 +238,16 @@ class StandardMap:
                 for i in range(len(self.runs)):
                     if self.runs[i]["nIters"] == options["N"]:
                         ind.append(i)
-                        print(f"Run {i + 1} cleared.")
+                        print(f"Run {i} cleared.")
                 if len(ind) == 0:
                     print(f"No runs of length {options["N"]} found.")
-                for j in ind:
+                for j in sorted(ind, reverse=True):
                     del self.runs[j]
             # Range of lengths cleared
             elif isinstance(options["N"], tuple):
                 assert len(options["N"]) == 2
                 for i in options["N"]:
+                    assert i > 0
                     assert isinstance(i, float)
                 assert options["N"][0] < options["N"][1]
                 for i in range(len(self.runs)):
@@ -255,19 +256,19 @@ class StandardMap:
                         and self.runs[i]["nIters"] <= options["N"][1]
                     ):
                         ind.append(i)
-                        print(f"Run {i + 1} cleared.")
+                        print(f"Run {i} cleared.")
                 if len(ind) == 0:
                     print(
                         f"No runs from length {options["N"][0]} to {options["N"][1]} found."
                     )
-                for j in ind:
+                for j in sorted(ind, reverse=True):
                     del self.runs[j]
             else:
                 raise Exception(
                     "Only single values or an ascending tuple of two inclusive bounds are allowed."
                 )
         else:
-            raise Exception("Only run index and K search supported.")
+            raise Exception("Only run index, K search, and run length supported.")
 
     # Function: write to CSV
     # Option to select ith array to write

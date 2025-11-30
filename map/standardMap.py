@@ -248,7 +248,7 @@ class StandardMap:
                 assert len(options["N"]) == 2
                 for i in options["N"]:
                     assert i > 0
-                    assert isinstance(i, float)
+                    assert isinstance(i, int)
                 assert options["N"][0] < options["N"][1]
                 for i in range(len(self.runs)):
                     if (

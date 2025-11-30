@@ -269,7 +269,7 @@ class StandardMap:
             raise Exception("Only run index, K search, and run length supported.")
 
     # Redundancy: __str__
-    # Returns the number of runs and the range of K
+    # Prints the number of runs and the range of K
     def __str__(self) -> str:
         info = self.metadata()
         if len(self.runs) > 0:

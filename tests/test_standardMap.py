@@ -528,6 +528,82 @@ def test_metadata_K():
         raise Exception("Invalid K range passed.")
 
 
+def test_metadata_nIters():
+    obj = initN()
+    ind = obj.metadata(N=75)
+    assert ind == [8, 36]
+    ind = obj.metadata(N=50)
+    assert ind == [31, 59, 82, 98]
+    ind = obj.metadata(N=135)
+    assert len(ind) == 0
+    try:
+        ind = obj.metadata(N=0)
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid run length passed.")
+    ind = obj.metadata(N=(10, 40))
+    assert ind == [
+        1,
+        10,
+        11,
+        18,
+        20,
+        21,
+        22,
+        24,
+        26,
+        38,
+        39,
+        46,
+        48,
+        49,
+        50,
+        52,
+        54,
+        61,
+        62,
+        69,
+        71,
+        72,
+        73,
+        75,
+        77,
+        85,
+        87,
+        88,
+        89,
+        91,
+        93,
+    ]
+    ind = obj.metadata(N=(100, 125))
+    assert len(ind) == 0
+    try:
+        ind = obj.metadata(N=(-1, 57))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid run length range passed.")
+    try:
+        ind = obj.metadata(N=(39, -10))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid run length range passed.")
+    try:
+        ind = obj.metadata(N=(80, 60))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid run length range passed.")
+    try:
+        ind = obj.metadata(N=(17,))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid run length range passed.")
+
+
 # # Clear:
 # ## total clear check
 # ## ind

@@ -462,6 +462,72 @@ def test_metadata_ind():
         raise Exception("Invalid run range passed.")
 
 
+def test_metadata_K():
+    obj = initK()
+    ind = obj.metadata(K=0.6172)
+    assert ind == [
+        3,
+    ]
+    ind = obj.metadata(K=0.5814)
+    assert ind == [22, 50, 73, 89]
+    ind = obj.metadata(K=1.5)
+    assert len(ind) == 0
+    try:
+        ind = obj.metadata(K=-2)
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid K passed.")
+    ind = obj.metadata(K=(0.7, 0.9))
+    assert ind == [
+        0,
+        7,
+        9,
+        10,
+        12,
+        17,
+        32,
+        35,
+        37,
+        38,
+        40,
+        45,
+        60,
+        61,
+        63,
+        68,
+        83,
+        84,
+        99,
+    ]
+    ind = obj.metadata(K=(1.5, 3.5))
+    assert len(ind) == 0
+    try:
+        ind = obj.metadata(K=(-4, 5))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid K range passed.")
+    try:
+        ind = obj.metadata(K=(2, -8))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid K range passed.")
+    try:
+        ind = obj.metadata(K=(4, 1))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid K range passed.")
+    try:
+        ind = obj.metadata(K=(4,))
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Invalid K range passed.")
+
+
 # # Clear:
 # ## total clear check
 # ## ind

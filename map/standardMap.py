@@ -1,6 +1,11 @@
 # Planned imports
 # numpy
+# os
+# glob
 import numpy as np
+import os
+import glob
+import re
 
 
 # Class (no inheritance)
@@ -343,15 +348,89 @@ class StandardMap:
             raise Exception("Only run index, K search, and run length supported.")
 
     # Function: write to CSV
-    # Option to select ith array to write
-    # i can be a range
+    # Option to select ith array to write - keyword is "run"
+    # i can be a range or a list (from metadata)
     # Option to write ALL arrays to CSVs -- default
     # Supply kwargs to savetxt function
-    # Reserve kwarg "name" as filename (can be path)
+    # Reserve kwarg "name" as filename (do not add .csv)
     # Default has header txt of "K = [val]"
     # Default saves I then theta w/ col headers "I,theta"
-    # Default names file "[K]-[val]-len-[nIters].csv"
+    # Default names file "K-[val]-len-[nIters].csv"
     # Default adds " ([number])" if filename taken
     # Default save location is "results/csvs"
     def write(self, **options) -> None:
-        pass
+        # Helper for duplicate files
+        def _fileCount(name: str, path: os.PathLike) -> int:
+            files = os.listdir(path)
+            count = 0
+            for file in files:
+                match = re.match(rf"{re.escape(name)}_(\d+)\.csv$", file)
+                if match:
+                    count += 1
+            return count
+
+        # Check how many to save
+        if "run" in options:
+            i = options.pop("run")
+            if isinstance(i, int):
+                ind = [i]
+            elif isinstance(i, tuple):
+                assert len(i) == 2
+                for j in i:
+                    assert isinstance(j, int)
+                assert i[0] < i[1]
+                assert (i[0] > -1 and i[1] < len(self.runs)) or (
+                    i[0] > -len(self.runs) and i[1] < 0
+                )
+                ind = [*range(i[0], i[1] + 1)]
+            elif isinstance(i, list):
+                assert len(i) > 0
+                seen = set()
+                rep = 0
+                for j in i:
+                    assert isinstance(j, int)
+                    assert j > -1 and j < len(self.runs)
+                    if j in seen:
+                        rep += 1
+                    else:
+                        seen.add(j)
+                assert rep < 1
+                ind = i
+            else:
+                raise Exception(
+                    "Only single values, an ascending tuple of two inclusive bounds, or a list of nonnegative indices are allowed."
+                )
+        else:
+            ind = [*range(len(self.runs))]
+        # Check for given names
+        if "name" in options:
+            fname = options.pop("name")
+            if len(ind) < 2:
+                assert isinstance(fname, str)
+                rep = _fileCount(fname, "results\\csvs")
+                if rep > 0:
+                    fname += f"_{rep}"
+                fname = ["results\\csvs\\" + fname + ".csv"]
+            else:
+                assert isinstance(fname, list)
+                assert len(fname) == len(ind)
+                for i, name in enumerate(fname):
+                    assert isinstance(name, str)
+                    rep = _fileCount(name, "results\\csvs")
+                    if rep > 0:
+                        fname[i] += f"_{rep}"
+                    fname[i] = "results\\csvs\\" + name + ".csv"
+        # Saving using savetxt
+        for i, j in enumerate(ind):
+            run = self.runs[j]
+            arr = run["run"].reshape((run["nSim"] * 2, run["nIters"] + 1))
+            htxt = ",".join(["I,theta"] * run["nSim"])
+            if "fmt" not in options:
+                options["fmt"] = "%.10f"
+            if "delimiter" not in options:
+                options["delimiter"] = "\t"
+            if "header" not in options:
+                options["header"] = f"K = {run["K"]}\n{htxt}"
+            if "comments" not in options:
+                options["comments"] = ""
+            np.savetxt(fname[i], arr.T, **options)

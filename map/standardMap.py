@@ -400,7 +400,11 @@ class StandardMap:
                     "Only single values, an ascending tuple of two inclusive bounds, or a list of nonnegative indices are allowed."
                 )
         else:
-            ind = [*range(len(self.runs))]
+            if len(self.runs) > 0:
+                ind = [*range(len(self.runs))]
+            else:
+                print("No runs to export yet.")
+                return
         # Check for given names
         if "name" in options:
             fname = options.pop("name")
@@ -419,6 +423,15 @@ class StandardMap:
                     if rep > 0:
                         fname[i] += f"_{rep}"
                     fname[i] = "results\\csvs\\" + name + ".csv"
+        else:
+            fname = []
+            for i, j in enumerate(ind):
+                run = self.runs[j]
+                fname.append(f"K-{run["K"]}-len-{run["nIters"]}")
+                rep = _fileCount(fname[-1], "results\\csvs")
+                if rep > 0:
+                    fname[-1] += f"_{rep}"
+                fname[-1] = "results\\csvs\\" + fname[-1] + ".csv"
         # Saving using savetxt
         for i, j in enumerate(ind):
             run = self.runs[j]
@@ -443,13 +456,18 @@ class StandardMap:
         if "delimiter" not in options:
             options["delimiter"] = "\t"
         if "skiprows" not in options:
-            options["skiprows"] = 2
+            options["skiprows"] = 3
         # Read files
         runs = []
         if isinstance(fname, str):
             file = open(f"results\\csvs\\{fname}.csv")
             kVal = float(file.readline().split(" ")[-1])
-            seedVal = int(file.readline().split(" ")[-1])
+            seedVal = file.readline().split(" ")[-1]
+            seedVal = seedVal.replace("\n", "")
+            if seedVal != "None":
+                seedVal = int(seedVal)
+            else:
+                seedVal = None
             arr = np.loadtxt(
                 f"results\\csvs\\{fname}.csv",
                 **options,
@@ -458,7 +476,7 @@ class StandardMap:
                 "K": kVal,
                 "nIters": arr.shape[0] - 1,
                 "seed": seedVal,
-                "run": arr.T.reshape((arr.shape[1] / 2, 2, arr.shape[0])),
+                "run": arr.T.reshape((int(arr.shape[1] / 2), 2, arr.shape[0])),
                 "nSim": arr.shape[1] / 2,
             }
             runs.append(run)

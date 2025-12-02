@@ -1,6 +1,7 @@
 # Unit tests using the pytest library
 import numpy as np
 from map.standardMap import StandardMap as sMap
+import os
 
 
 # Planned tests:
@@ -934,4 +935,15 @@ def test_clear_nIters():
 
 
 def test_read_write():
-    pass
+    obj = sMap()
+    obj.write()
+    assert len(os.listdir("results\\csvs")) == 0
+    obj.simulate()
+    obj.write()
+    assert len(os.listdir("results\\csvs")) == 1
+    obj.read("K-1.0-len-500")
+    assert obj.runs[0]["K"] == obj.runs[1]["K"]
+    assert obj.runs[0]["nIters"] == obj.runs[1]["nIters"]
+    assert obj.runs[0]["seed"] == obj.runs[1]["seed"]
+    assert np.allclose(obj.runs[0]["run"], obj.runs[1]["run"])
+    os.remove("results\\csvs\\K-1.0-len-500.csv")

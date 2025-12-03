@@ -70,9 +70,9 @@ class StandardMap:
         Notes
         -----
         The Chirikov-Taylor map is given by the following recurrence relation:
-        .. math::
-            I_{n+1}=I_n+K\sin(\omega_n)\mod2\pi
-            \omega_{n+1}=\omega_n+I_{n+1}\mod2\pi
+
+            I_{n+1} = (I_n + K sin(omega_n)) % 2 pi
+            omega_{n+1} = (omega_n + I_{n+1}) % 2 pi
 
         Each run in `runs` is a dictionary listing:
         - the seed of the random number generator (`"seed"`)
@@ -504,8 +504,9 @@ class StandardMap:
                 for i, name in enumerate(fname):
                     assert isinstance(name, str)
                     rep = _fileCount(name, "results\\csvs")
-                    if rep > 0:
-                        fname[i] += f"_{rep}"
+                    newRep = fname[:i].count("results\\csvs\\" + fname[-1] + ".csv")
+                    if rep + newRep > 0:
+                        fname[i] += f"_{rep + newRep}"
                     fname[i] = "results\\csvs\\" + name + ".csv"
         else:
             fname = []
@@ -513,23 +514,29 @@ class StandardMap:
                 run = self.runs[j]
                 fname.append(f"K-{run["K"]}-len-{run["nIters"]}")
                 rep = _fileCount(fname[-1], "results\\csvs")
-                if rep > 0:
-                    fname[-1] += f"_{rep}"
+                newRep = fname[:-1].count("results\\csvs\\" + fname[-1] + ".csv")
+                if rep + newRep > 0:
+                    fname[-1] += f"_{rep + newRep}"
                 fname[-1] = "results\\csvs\\" + fname[-1] + ".csv"
         # Saving using savetxt
+        userHeader = options.get("header")
         for i, j in enumerate(ind):
             run = self.runs[j]
             arr = run["run"].reshape((run["nSim"] * 2, run["nIters"] + 1))
             htxt = ",".join(["I,theta"] * run["nSim"])
+            if userHeader is None:
+                header = htxt
+            else:
+                header = userHeader
+            options["header"] = f"K = {run["K"]}\nseed = {run["seed"]}\n{header}"
             if "fmt" not in options:
                 options["fmt"] = "%.10f"
             if "delimiter" not in options:
                 options["delimiter"] = "\t"
-            if "header" not in options:
-                options["header"] = f"K = {run["K"]}\nseed = {run["seed"]}\n{htxt}"
             if "comments" not in options:
                 options["comments"] = ""
             np.savetxt(fname[i], arr.T, **options)
+            header = ""
 
     # Function: read CSV and add to runs
     # File name is name without directory or .csv tag
@@ -542,7 +549,7 @@ class StandardMap:
         if "skiprows" not in options:
             options["skiprows"] = 3
         # Read files
-        runs = []
+        fileRuns = []
         if isinstance(fname, str):
             file = open(f"results\\csvs\\{fname}.csv")
             kVal = float(file.readline().split(" ")[-1])
@@ -561,15 +568,20 @@ class StandardMap:
                 "nIters": arr.shape[0] - 1,
                 "seed": seedVal,
                 "run": arr.T.reshape((int(arr.shape[1] / 2), 2, arr.shape[0])),
-                "nSim": arr.shape[1] / 2,
+                "nSim": int(arr.shape[1] / 2),
             }
-            runs.append(run)
+            fileRuns.append(run)
         elif isinstance(fname, list):
             for name in fname:
                 assert isinstance(name, str)
                 file = open(f"results\\csvs\\{name}.csv")
                 kVal = float(file.readline().split(" ")[-1])
-                seedVal = int(file.readline().split(" ")[-1])
+                seedVal = file.readline().split(" ")[-1]
+                seedVal = seedVal.replace("\n", "")
+                if seedVal != "None":
+                    seedVal = int(seedVal)
+                else:
+                    seedVal = None
                 arr = np.loadtxt(
                     f"results\\csvs\\{name}.csv",
                     **options,
@@ -578,17 +590,17 @@ class StandardMap:
                     "K": kVal,
                     "nIters": arr.shape[0] - 1,
                     "seed": seedVal,
-                    "run": arr.T.reshape((arr.shape[1] / 2, 2, arr.shape[0])),
-                    "nSim": arr.shape[1] / 2,
+                    "run": arr.T.reshape((int(arr.shape[1] / 2), 2, arr.shape[0])),
+                    "nSim": int(arr.shape[1] / 2),
                 }
-                runs.append(run)
+                fileRuns.append(run)
         else:
             raise Exception("Only a file name or a list of file names are allowed.")
         # Add to current object
         if insert == "append":
-            self.runs.extend(runs)
+            self.runs.extend(fileRuns)
         elif insert == "overwrite":
-            self.runs[-len(runs) :] = runs
+            self.runs[-len(fileRuns) :] = fileRuns
         else:
             raise Exception(
                 'Invalid option. Only "append" and "overwrite" are allowed.'

@@ -890,9 +890,10 @@ def test_clear_nIters():
 # Read and write
 def test_read_write():
     obj = sMap()
+    testIc = np.array([[0.0, np.pi / 2], [np.pi, 3 * np.pi / 2], [2 * np.pi, 0.75]])
     obj.write()
     assert len(os.listdir("results\\csvs")) == 0
-    obj.simulate()
+    obj.simulate(ic=testIc)
     obj.write()
     assert len(os.listdir("results\\csvs")) == 1
     obj.read("K-1.0-len-500")
@@ -901,3 +902,66 @@ def test_read_write():
     assert obj.runs[0]["seed"] == obj.runs[1]["seed"]
     assert np.allclose(obj.runs[0]["run"], obj.runs[1]["run"])
     os.remove("results\\csvs\\K-1.0-len-500.csv")
+    obj.simulate(ic=testIc)
+    obj.write(run=-1, delimiter=",")
+    obj.read("K-1.0-len-500", delimiter=",")
+    assert obj.runs[0]["K"] == obj.runs[-1]["K"]
+    assert obj.runs[0]["nIters"] == obj.runs[-1]["nIters"]
+    assert obj.runs[0]["seed"] == obj.runs[-1]["seed"]
+    assert np.allclose(obj.runs[0]["run"], obj.runs[-1]["run"])
+    os.remove("results\\csvs\\K-1.0-len-500.csv")
+    obj.simulate(ic=testIc)
+    obj.write(run=-1, header="My Custom Header")
+    obj.read("K-1.0-len-500")
+    assert obj.runs[0]["K"] == obj.runs[-1]["K"]
+    assert obj.runs[0]["nIters"] == obj.runs[-1]["nIters"]
+    assert obj.runs[0]["seed"] == obj.runs[-1]["seed"]
+    assert np.allclose(obj.runs[0]["run"], obj.runs[-1]["run"])
+    os.remove("results\\csvs\\K-1.0-len-500.csv")
+    obj.simulate(ic=testIc)
+    obj.write(run=-1, fmt="%.5f")
+    obj.read("K-1.0-len-500")
+    assert obj.runs[0]["K"] == obj.runs[-1]["K"]
+    assert obj.runs[0]["nIters"] == obj.runs[-1]["nIters"]
+    assert obj.runs[0]["seed"] == obj.runs[-1]["seed"]
+    assert np.allclose(obj.runs[0]["run"], obj.runs[-1]["run"], atol=1e-3)
+    os.remove("results\\csvs\\K-1.0-len-500.csv")
+    assert len(obj.runs) == 8
+    obj.K = 0.4
+    obj.simulate(ic=testIc)
+    obj.write(run=-1)
+    obj.K = 0.9
+    obj.simulate(ic=testIc)
+    obj.read("K-0.4-len-500", "overwrite")
+    assert len(obj.runs) == 10
+    assert obj.runs[-2]["K"] == obj.runs[-1]["K"]
+    assert obj.runs[-2]["nIters"] == obj.runs[-1]["nIters"]
+    assert obj.runs[-2]["seed"] == obj.runs[-1]["seed"]
+    assert np.allclose(obj.runs[-2]["run"], obj.runs[-1]["run"])
+    os.remove("results\\csvs\\K-0.4-len-500.csv")
+    try:
+        obj.read("file_xi")
+    except Exception:
+        print("Not possible")
+    else:
+        raise Exception("Nonexistent file read.")
+    obj.K = 1.5
+    obj.simulate(ic=testIc)
+    obj.simulate(ic=testIc)
+    obj.write(run=(-2, -1))
+    files = os.listdir("results\\csvs")
+    assert len(files) == 2
+    assert "K-1.5-len-500.csv" in files
+    assert "K-1.5-len-500_1.csv" in files
+    obj.read(["K-1.5-len-500", "K-1.5-len-500_1"])
+    assert len(obj.runs) == 14
+    assert obj.runs[-4]["K"] == obj.runs[-2]["K"]
+    assert obj.runs[-4]["nIters"] == obj.runs[-2]["nIters"]
+    assert obj.runs[-4]["seed"] == obj.runs[-2]["seed"]
+    assert np.allclose(obj.runs[-4]["run"], obj.runs[-2]["run"])
+    assert obj.runs[-3]["K"] == obj.runs[-1]["K"]
+    assert obj.runs[-3]["nIters"] == obj.runs[-1]["nIters"]
+    assert obj.runs[-3]["seed"] == obj.runs[-1]["seed"]
+    assert np.allclose(obj.runs[-3]["run"], obj.runs[-1]["run"])
+    os.remove("results\\csvs\\K-1.5-len-500.csv")
+    os.remove("results\\csvs\\K-1.5-len-500_1.csv")

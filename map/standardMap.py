@@ -167,7 +167,6 @@ class StandardMap:
             )
 
     # Function: get and set K
-    # Implement as callable
     @property
     def K(self) -> float:
         return self._K
@@ -178,7 +177,6 @@ class StandardMap:
         self._K = float(K)
 
     # Function: get and set nIters
-    # Implement as callable
     @property
     def nIters(self) -> int:
         return self._nIters
@@ -189,7 +187,6 @@ class StandardMap:
         self._nIters = int(nIters)
 
     # Function: get and set seed
-    # Implement as callable
     @property
     def seed(self) -> int:
         return self._seed
@@ -198,21 +195,155 @@ class StandardMap:
     def seed(self, seed) -> None:
         self._seed = seed
 
-    # Function: metadata (ALL kwargs)
-    # Returns the number of runs, range of K, and range of run lengths -- default
-    # Returns the K, initial condition, and length of ith run in list
-    # (Implement checks for i): keyword is "run" {values start at 1}
-    # i can also be a range (two element tuple), inclusive
-    # Must perform sanity checks for i[0] and i[1]
-    # Returns the indices of runs with a given K, same metadata as "run"
-    # (same K checks): return "None" if not found, keyword is "K"
-    # K can also be a range (two element tuple), check is inclusive
-    # Must perform sanity checks for K[0] and K[1]
-    # Returns the indices of runs with a given length, same metadata as "run"
-    # (same nIters checks): return "None" if not found, keyword is "N"
-    # nIters can also be a range (two element tuple), check is inclusive
-    # Must perform sanity checks for nIters[0] and nIters[1]
     def metadata(self, **options) -> dict | list[dict,] | list[int,]:
+        """
+        Returns various information about the directory of current runs in `runs`.
+
+        Parameters
+        ----------
+        **options : single values or two-element ranges
+            Return the information of a selection of runs in `runs`.
+
+            Valid keyword arguments are:
+
+            `"run"`: int or tuple of ints
+
+            An index (positive or negative) for the desired run in `runs`, or a
+            monotonically ascending two-element tuple denoting an inclusive range
+            of runs to return information about. Both elements must be the same sign.
+
+
+            `"K"`: float or tuple of floats
+
+            A kick value to look for in `runs`, or a monotonically ascending two-element
+            tuple denoting an inclusive range of kick values to search for. All values
+            must be nonnegative.
+
+            `"N"`: int or tuple of ints
+
+            A simulation length to look for in `runs`, or a monotonically ascending
+            two-element tuple denoting an inclusive range of simulation lengths to
+            search for. All values must be positive.
+
+        Returns
+        -------
+        info : dict or list of dicts
+            When no keywords are specified, the function returns a dictionary containing
+            the following information:
+            - The current number of runs stored in `runs` as an integer (keyword is
+                `"runCount"`)
+            - The range of kick values simulated as a tuple of floats (keyword is `"K"`)
+            - The range of simulation lengths as a tuple of ints (keyword is `"nIters"`)
+            - The range of initial values for I across all runs as a tuple of floats
+                (keyword is `"I_0"`)
+            - The range of initial values for theta across all runs as a tuple of floats
+                (keyword is `"theta_0"`)
+
+            If there are no runs stored, then the function returns a dictionary
+            containing the following information:
+            - The current kick value of the `StandardMap` object as a float (keyword is
+                `"K"`)
+            - The current simulation length of the `StandardMap` object as an integer
+                (keyword is `"nIters"`)
+
+            If a single `"run"` index is specified, the function returns a dictionary
+            containing the following information:
+            - The kick value of the run as a float (keyword is `"K"`)
+            - The length of the run as an integer (keyword is `"nIters"`)
+            - All initial conditions in the run as an ndarray (keyword is `"IC"`)
+
+            Passing a range of indices will return a list of dictionaries, each with
+            the same information as above.
+
+        ind : list of ints
+            If a kick value(s) is specified, the function returns a list of all indices
+            in `runs` that used the specified kick value(s). The list will be empty if
+            there are no runs satisfying the search criteria.
+
+            Specifying a simulation length(s) will also return a list of pertinent
+            indices.
+
+        Notes
+        -----
+        The default output is also available as a print statement for a `StandardMap`
+        object.
+        >>> from map.standardMap import StandardMap as sMap
+        >>> import numpy as np
+        >>> obj = sMap()
+        >>> print(obj)
+        Current K: 1.0
+        Current run length: 500
+        No runs yet.
+        >>> ic = np.array([[0.0, np.pi / 2], [np.pi, 3 * np.pi / 2], [2 * np.pi, 0.75]])
+        >>> obj.simulate()
+        >>> print(obj)
+        Number of runs: 1
+        Range of K: [1.0, 1.0]
+        Range of lengths: [500, 500]
+        Range of I(0): [0.0, 6.283185307179586]
+        Range of theta(0): [0.75, 4.71238898038469]
+
+        Examples
+        --------
+        First, instantiate the object:
+
+        >>> import numpy as np
+        >>> from map.standardMap import StandardMap as sMap
+        >>> obj = sMap()
+
+        Information about all runs:
+
+        >>> obj.metadata()
+        {'K': 1.0, 'nIters': 500}
+        >>> for i in range(4):
+        ...     obj.K = 0.25 * (i + 1)
+        ...     obj.nIters = 125 * (i + 1)
+        ...     obj.simulate()
+        ...
+        >>> obj.metadata()
+        {'runCount': 4, 'K': (0.25, 1.0), 'nIters': (125, 500),
+            'I_0': (np.float64(0.014610808396629324), np.float64(4.966025323317397)),
+            'theta_0': (np.float64(3.2590806002527763), np.float64(5.781067100558959))}
+
+        Information about a specific run:
+
+        >>> obj.metadata(run=2)
+        {'K': 0.75, 'nIters': 375, 'IC': array([[2.43983626, 3.77060568]])}
+
+        Information about a range of runs:
+
+        >>> obj.metadata(run=(-3,-1))
+        [{'K': 0.5, 'nIters': 250, 'IC': array([[4.96602532, 5.22501996]])}, {'K': 0.75,
+            'nIters': 375, 'IC': array([[2.43983626, 3.77060568]])}, {'K': 1.0,
+            'nIters': 500, 'IC': array([[0.01461081, 3.2590806 ]])}]
+
+        Searching for a single kick value:
+
+        >>> obj.metadata(K=0.25)
+        [0]
+        >>> obj.metadata(K=3)
+        []
+
+        Searching for a range of kick values:
+
+        >>> obj.metadata(K=(0.5, 1.0))
+        [1, 2, 3]
+        >>> obj.metadata(K=(2.1,2.5))
+        []
+
+        Searching for a single simulation length:
+
+        >>> obj.metadata(N=375)
+        [2]
+        >>> obj.metadata(N=10)
+        []
+
+        Searching for a range of simulation lengths:
+        >>> obj.metadata(N=(100,600))
+        [0, 1, 2, 3]
+        >>> obj.metadata(N=(400,900))
+        [3]
+        """
         # Check for keyword correctness
         assert len(options) < 2
         ind = []
@@ -255,7 +386,7 @@ class StandardMap:
                     "I_0": (minI, maxI),
                     "theta_0": (minT, maxT),
                 }
-            return {"runCount": len(self.runs), "K": self.K, "nIters": self.nIters}
+            return {"K": self.K, "nIters": self.nIters}
         # List index info
         if "run" in options:
             # Single run info

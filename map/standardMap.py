@@ -696,18 +696,90 @@ class StandardMap:
         else:
             raise Exception("Only run index, K search, and run length supported.")
 
-    # Function: write to CSV
-    # Option to select ith array to write - keyword is "run"
-    # i can be a range or a list (from metadata)
-    # Option to write ALL arrays to CSVs -- default
-    # Supply kwargs to savetxt function
-    # Reserve kwarg "name" as filename (do not add .csv)
-    # Default has header txt of "K = [val]\nseed = [val]"
-    # Default saves I then theta w/ col headers "I,theta"
-    # Default names file "K-[val]-len-[nIters].csv"
-    # Default adds " ([number])" if filename taken
-    # Default save location is "results/csvs"
     def write(self, **options) -> None:
+        """
+        Saves simulations to a CSV file. Passing no arguments will save all runs.
+
+        Batches of I and theta values are flattened into a 2D array before saving. Each
+        odd column is `I`, while each even column is `theta`.
+
+        Parameters
+        ----------
+        **options : single entries or lists
+            Customize the file saving process.
+
+            Valid keyword arguments are:
+
+            `"run"`: int, tuple of ints, or list of ints
+
+            An index (positive or negative) for the desired run in `runs`, a
+            monotonically ascending two-element tuple denoting an inclusive range of
+            runs, or a list of run indices. For tuples, both elements must be the same
+            sign; for lists, all values must be nonnegative. The function will
+            automatically remove duplicate indices.
+
+            `"name"`: str or list of str
+
+            Denote the filename(s) that will be used when saving the runs. Filenames
+            are strictly titles without the directory location or filetype. The number
+            of filenames must match the number of runs being saved. The default
+            filename is "K-{kick value}-len-{simulation length}." If a duplicate is
+            found in the folder "results/csvs", then a label "_({number of duplicates})"
+            will be appended to the end of the title.
+
+            `"header"`: str [`np.savetxt` option]
+
+            Text at the top of the CSV file. Default for this function is "I,theta,..."
+            repeated for as many batches as needed to save the run. Regardless of the
+            input, the first two lines will contain the kick value and the RNG seed of
+            the run. **Directly removing this from the CSV will cause the `write`
+            function to fail.**
+
+            `"comments"`: str [`np.savetxt` option]
+
+            How lines that are not part of the saved array will appear. This function
+            removes the comment (empty string) by default.
+
+            `"fmt"`: str [`np.savetxt` option]
+
+            How floats are saved in the CSV file. The default for this function is
+            '%.10f'. See the documentation of `np.savetxt` for further information on
+            valid formatters.
+
+            `"delimiter"`: str [`np.savetxt` option]
+
+            How numbers in a line are separated. This function inserts a tab ("\\t")
+            between values.
+
+            Other arguments can still be passed to `np.savetxt`.
+
+        Notes
+        -----
+        Errors will not be raised if there are no runs to save.
+
+        >>> from map.standardMap import StandardMap as sMap
+        >>> obj = sMap()
+        >>> obj.write()
+        No runs to save yet.
+
+        Examples
+        --------
+        Assume a `StandardMap` object named `obj` exists with an arbitrary number
+        of varied runs.
+
+        >>> obj.write()     # Save all runs using the default naming convention
+        >>> obj.write(run=3)    # Save the third run
+        >>> obj.write(run=(-5,-1))  # Save the last five runs
+        >>> obj.write(run=[3, 7, 15])   # Save specified runs
+        >>> obj.write(run=3, name="myFile")     # Save the third run using a custom filename
+        >>> fNames = ["file1", "file2", "file3"]
+        ... obj.write(run=(1,3), name=fNames)   # Save the first three runs using custom filenames
+        >>> obj.write(header="My CSV")  # Save all runs with a custom header
+        >>> obj.write(fmt='%.3g')   # Save all runs with a custom float format
+        >>> obj.write(delimiter="...")  # Save all runs with a custom delimiter
+        >>> obj.write(comments=">>>")   # Save all runs with a custom prepended string for nonnumeric lines
+        """
+
         # Helper for duplicate files
         def _fileCount(name: str, path: os.PathLike) -> int:
             files = os.listdir(path)
@@ -718,6 +790,10 @@ class StandardMap:
                     count += 1
             return count
 
+        # Prevent saving if no runs are found
+        if len(self.runs) < 1:
+            print("No runs to save yet.")
+            return
         # Check how many to save
         if "run" in options:
             i = options.pop("run")
@@ -750,11 +826,7 @@ class StandardMap:
                     "Only single values, an ascending tuple of two inclusive bounds, or a list of nonnegative indices are allowed."
                 )
         else:
-            if len(self.runs) > 0:
-                ind = [*range(len(self.runs))]
-            else:
-                print("No runs to export yet.")
-                return
+            ind = [*range(len(self.runs))]
         # Check for given names
         if "name" in options:
             fname = options.pop("name")
@@ -804,12 +876,110 @@ class StandardMap:
             np.savetxt(fname[i], arr.T, **options)
             header = ""
 
-    # Function: read CSV and add to runs
-    # File name is name without directory or .csv tag
-    # Option to append (default) or replace last ith runs
-    # File must be in the same format as produced by "write"
-    # Pass kwargs to loadtxt function
     def read(self, fname: str | list[str,], insert: str = "append", **options) -> None:
+        """
+        Reads in CSV files and adds them to the list of runs.
+
+        Parameters
+        ----------
+        fname : str or list of str
+            The files to look for in "results/csvs". Filenames are strictly titles
+            without the directory location or filetype. **Files from other directory
+            locations will not be accepted.**
+
+        insert : str, optional
+            How the simulation is added to `runs`. `"append"` (default) adds the
+                simulation to the end of the list, while `"overwrite"` replaces the
+                last n runs with the imported ones.
+
+        **options : single entries or lists
+            Specify the various characteristics of the CSVs being read.
+
+            Valid keyword arguments are:
+
+            `"delimiter"`: str [`np.loadtxt` option]
+
+            How numbers in a line are separated. This function assumes a tab ("\\t")
+            between values.
+
+            `"skiprows"`: int [`np.loadtxt` option]
+
+            The number of lines to skip, including headers and comments. This function
+            assumes the default header from `write` is used (3 lines). **CSVs without a
+            header denoting the kick value and RNG seed will raise an error, so the
+            minimum value is 2.**
+
+            Other arguments can still be passed to `np.loadtxt`.
+
+        Notes
+        -----
+        An example CSV looks like this:
+        ```
+        K = 1.254
+        seed = None
+        I,theta,I,theta
+        0.489321481\t\t1.051512058\t2.181263055\t5.165028944
+        4.000518485\t\t0.021515130\t0.158545162\t3.059456023
+        ...
+        ```
+        The first two lines must be present for `write` to function. They provide
+        information about the run's kick value and RNG seed.
+
+        The third line can be replaced with an arbitrary number of custom headers as
+        long as `skiprows` has the right amount of lines to skip.
+
+        The rest of the rows are the simulation values (separated by a tab delimiter
+        here). Each pair of columns represents `I` and `theta` in that order. Batches
+        will be stacked from front to back in the `runs` entry as they are read in from
+        left to right.
+
+        Specify a delimiter for `delimiter` to read in a custom separation method.
+
+        All text values can have a custom preceding string if `comments` is passed to
+        the function.
+
+        Other customizations are permitted as long as they are compatible with
+        `np.loadtxt`. Read that function's documentation for more details.
+
+        Examples
+        -----
+        Assume a `StandardMap` object named `obj` exists with an arbitrary number of
+        varied runs.
+
+        Reading in a single CSV:
+
+        >>> len(obj.runs)
+        32
+        >>> obj.read("K-0.7-len-215")   # Filename may be different
+        >>> len(obj.runs)
+        33
+
+        Reading in a list of CSVs:
+
+        ...earlier simulations...
+        >>> fNames = ["bob", "cam", "psir"] # Filenames may differ
+        >>> len(obj.runs)
+        77
+        >>> obj.read(fNames)
+        >>> len(obj.runs)
+        80
+
+        Overwriting earlier runs:
+
+        ...earlier simulations...
+        >>> fNames = ["rep1", "rep2"]   # Filenames may differ
+        >>> len(obj.runs)
+        111
+        >>> obj.read(fNames, "overwrite")
+        >>> len(obj.runs)
+        111
+
+        Overwriting this function's `np.loadtxt` options. All filenames may be
+        different.
+
+        >>> obj.read("myCSV", delimiter="++")   # Read in a CSV with a custom delimter
+        >>> obj.read("myCSV2", skiprows=6)  # Read in a CSV with a custom header
+        """
         if "delimiter" not in options:
             options["delimiter"] = "\t"
         if "skiprows" not in options:

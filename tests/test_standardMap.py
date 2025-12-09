@@ -348,8 +348,7 @@ def initN():
 def test_metadata_ind():
     obj = sMap(nIters=10)
     info = obj.metadata()
-    assert len(info) == 3
-    assert info["runCount"] == 0
+    assert len(info) == 2
     assert info["K"] == 1.0
     assert info["nIters"] == 10
     testIc = np.array([[0.0, np.pi / 2], [np.pi, 3 * np.pi / 2], [2 * np.pi, 0.75]])

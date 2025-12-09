@@ -1,21 +1,41 @@
-# Planned imports
-# numpy
 import numpy as np
+import os
+import re
 
 
-# Class (no inheritance)
-# standardMap
 class StandardMap:
+    """
+    A class to store the trajectories of the Chirikov-Taylor Map. Available to use from
+    a command line interface.
 
-    # Initialization
-    # User can set K, nIters, random seed
-    # K is a positive real number (checks) -- defaults to 1
-    # nIters is a positive integer (checks) -- defaults to 500
-    # seed is a positive integer w/ 0 (checks) -- defaults to None
-    # Object stores list of dicts w/ K, nIters, seed, and batched arrays for I
-    # and theta
-    # Call the list "runs"
-    # Initialization makes an empty list
+    Attributes
+    ----------
+    K : float
+        A nonnegative "kick value" that provides an angular momentum boost. See
+        `simulate` for more details.
+    nIters : int
+        The number of iterations to travel through. Must be positive.
+    seed : int or None
+        Used to store information about NumPy's random number generator.
+    runs : list of dict
+        All previous simulations are stored here with their respective parameters.
+
+    Methods
+    -------
+        simulate(option="append", ic=1)
+            Iterates through the map from an initial condition or a batch of initial
+            conditions.
+        metadata(**options)
+            Returns information about runs or a list of indices satisfying a search
+            term.
+        clearRuns(**options)
+            Removes specified runs from the `runs` list.
+        write(**options)
+            Writes the specified runs to a `.csv` file using NumPy's `savetxt` function.
+        read(fname, **options)
+            Reads in `.csv` files to store in the `runs` list.
+    """
+
     def __init__(self, K: float = 1.0, nIters: int = 500, seed=None) -> None:
         # Checks for K and nIters
         assert K >= 0
@@ -27,19 +47,89 @@ class StandardMap:
         # Initialize the list of dicts
         self.runs = []
 
-    # Function: simulate
-    # Option to append new run or overwrite -- default is append
-    # User supplies initial values for I and theta -- defaults to random \
-    # (seeded or not)
-    # I and theta are limited to [0, 2pi] (checks)
-    # Initial conditions can be a batch vector or a number of random ICs
-    # Overwrite replaces most recent run in list with dict entry
-    # Append creates new dict entry in list
     def simulate(self, option: str = "append", ic: np.ndarray | int = 1) -> None:
+        """
+        Simulates the Chirikov-Taylor map from a given initial condition and adds the
+        result to `runs`.
+
+        Parameters
+        ----------
+        option : str, optional
+            How the simulation is added to `runs`. `"append"` (default) adds the
+                simulation to the end of the list, while `"overwrite"` replaces the
+                last run with the current simulation.
+        ic : ndarray or int, optional
+            The initial conditions for `I` and `theta`.
+            - Passing an integer will result
+                in a batch of `ic` (I, theta) pairs iterated simultaneously, where the
+                values are drawn from a uniform distribution in [0, 2 pi].
+            - Passing an ndarray of shape (number of points, 2), where the first column
+                are the I values and the second column are the theta values, will start
+                the simulation at the specified points.
+
+            The default input is a single randomly selected initial condition (`ic = 1`).
+
+        Notes
+        -----
+        The Chirikov-Taylor map is given by the following recurrence relation:
+
+            I_{n+1} = (I_n + K sin(omega_n)) % 2 pi
+            omega_{n+1} = (omega_n + I_{n+1}) % 2 pi
+
+        Each run in `runs` is a dictionary listing:
+        - the seed of the random number generator (`"seed"`)
+        - the time trajectories of the simulation (`"run"`)
+        - the number of iterations in the simulation (`"nIters"`)
+        - the "kick value" of the simulation (`"K"`)
+        - the number of initial conditions (`"nSim"`)
+        Use the keys above to access the desired run in the list.
+
+        Examples
+        --------
+        First, instantiate the object:
+
+        >>> import numpy as np
+        >>> from map.standardMap import StandardMap as sMap
+        >>> obj = sMap()
+
+        A default simulation:
+
+        >>> obj.simulate()
+        >>> print(obj.runs[-1])
+        {'K': 1.0, 'nIters': 500, 'seed': None, 'run': array([[[0.99831564, 0.8406607
+            , 1.47127561, ..., 5.38026427, 4.54137696, 4.14777316], [6.12486987,
+            0.68234526, 2.15362087, ..., 5.28794956, 3.54614121, 1.41072907]]], shape=
+            (1, 2, 501)), 'nSim': 1}
+
+        Simulate four trajectories at a time:
+
+        >>> obj.simulate(ic=4)
+        >>> print(obj.runs[-1]["run"].shape)
+        (4, 2, 501)
+
+        Simulate from a specified initial condition:
+        >>> ic = np.array([[0.0, np.pi / 2], [np.pi, 3 * np.pi / 2], [2 * np.pi, 0.75]])
+        >>> obj.simulate(ic=ic)
+        >>> print(obj.runs[-1]["run"][:, :, 0])
+        [[0.0       1.57079633]
+        [3.14159265 4.71238898]
+        [6.28318531 0.75      ]]
+
+        Replace the previous run when simulating:
+        >>> print(obj.runs[-1]["nSim"])
+        3
+        >>> print(len(obj.runs))
+        3
+        >>> obj.simulate(ic=5, option="overwrite")
+        >>> print(obj.runs[-1]["nSim"])
+        5
+        >>> print(len(obj.runs))
+        3
+        """
         # Initialize the array
         if isinstance(ic, int):
             assert ic > 0
-            state = np.zeros((ic, 2, self._nIters))
+            state = np.zeros((ic, 2, self._nIters + 1))
             np.random.seed(self._seed)
             state[..., 0] = np.random.uniform(
                 0,
@@ -51,12 +141,12 @@ class StandardMap:
             assert ic.shape[0] > 0
             assert np.min(ic) >= 0
             assert np.max(ic) <= 2 * np.pi
-            state = np.zeros((len(ic), 2, self._nIters))
+            state = np.zeros((len(ic), 2, self._nIters + 1))
             state[..., 0] = ic
         else:
-            raise Exception("ic must be an integer or a batch of initial values.")
+            raise Exception('"ic" must be an integer or a batch of initial values.')
         # Run the map
-        for i in range(self._nIters - 1):
+        for i in range(self._nIters):
             state[:, 0, i + 1] = (state[:, 0, i] + self._K * np.sin(state[:, 1, i])) % (
                 2 * np.pi
             )
@@ -79,87 +169,489 @@ class StandardMap:
             )
 
     # Function: get and set K
-    # Implement as callable
     @property
-    def K(self):
+    def K(self) -> float:
         return self._K
 
     @K.setter
-    def K(self, K: float):
+    def K(self, K: float) -> None:
         assert K >= 0
         self._K = float(K)
 
     # Function: get and set nIters
-    # Implement as callable
     @property
-    def nIters(self):
+    def nIters(self) -> int:
         return self._nIters
 
     @nIters.setter
-    def nIters(self, nIters: int):
+    def nIters(self, nIters: int) -> None:
         assert nIters > 0
         self._nIters = int(nIters)
 
     # Function: get and set seed
-    # Implement as callable
     @property
-    def seed(self):
+    def seed(self) -> int:
         return self._seed
 
     @seed.setter
-    def seed(self, seed):
+    def seed(self, seed) -> None:
         self._seed = seed
 
-    # Function: metadata (ALL kwargs)
-    # Returns the number of runs and the range of K -- default
-    # Returns the K, initial condition, and length of ith run in list
-    # (Implement checks for i): keyword is "run" {values start at 1}
-    # i can also be a range (two element tuple), inclusive
-    # Must perform sanity checks for i[0] and i[1]
-    # Returns the indices of runs with a given K, same metadata as "run"
-    # (same K checks): return "None" if not found, keyword is "K"
-    # K can also be a range (two element tuple), check is inclusive
-    # Must perform sanity checks for K[0] and K[1]
-    # Returns the indices of runs with a given length, same metadata as "run"
-    # (same nIters checks): return "None" if not found, keyword is "N"
-    # nIters can also be a range (two element tuple), check is inclusive
-    # Must perform sanity checks for nIters[0] and nIters[1]
+    def metadata(self, **options) -> dict | list[dict,] | list[int,]:
+        """
+        Returns various information about the directory of current runs in `runs`.
 
-    # Redundancy: __str__
-    # Returns the number of runs and the range of K
-    def __str__(self) -> str:
-        if len(self.runs) > 0:
-            minK = self.runs[0]["K"]
-            maxK = self.runs[0]["K"]
-            minN = self.runs[0]["nIters"]
-            maxN = self.runs[0]["nIters"]
-            for run in self.runs:
-                if run["K"] < minK:
-                    minK = run["K"]
-                if run["K"] > maxK:
-                    maxK = run["K"]
-                if run["nIters"] < minN:
-                    minN = run["nIters"]
-                if run["nIters"] > maxN:
-                    maxN = run["nIters"]
-            return f"Number of runs: {len(self.runs)}\nRange of K: [{minK}, {maxK}]\nRange of lengths: [{minN}, {maxN}]"
-        return f"Current K: {self._K}\nCurrent run length: {self._nIters}\nNo runs yet."
+        Parameters
+        ----------
+        **options : single values or two-element ranges
+            Return the information of a selection of runs in `runs`.
 
-    # Function: clearRuns
-    # does not remove current values of K/nIter/seed in object
-    # removes all runs from history -- default
-    # removes ith runs (Implement checks for i): keyword is "run"
-    # i can also be a range (two element tuple), inclusive
-    # Must perform sanity checks for i[0] and i[1]
-    # removes runs with given K (Implement checks for K): keyword is "K"
-    # K can also be a range (two element tuple), inclusive
-    # Must perform sanity checks for K[0] and K[1]
-    # removes runs with given length (Implement checks for nIters): keyword is "N"
-    # nIters can also be a range (two element tuple)
-    def clearRuns(self, **options) -> None:
+            Valid keyword arguments are:
+
+            `"run"`: int or tuple of ints
+
+            An index (positive or negative) for the desired run in `runs`, or a
+            monotonically ascending two-element tuple denoting an inclusive range
+            of runs to return information about. Both elements must be the same sign.
+
+
+            `"K"`: float or tuple of floats
+
+            A kick value to look for in `runs`, or a monotonically ascending two-element
+            tuple denoting an inclusive range of kick values to search for. All values
+            must be nonnegative.
+
+            `"N"`: int or tuple of ints
+
+            A simulation length to look for in `runs`, or a monotonically ascending
+            two-element tuple denoting an inclusive range of simulation lengths to
+            search for. All values must be positive.
+
+        Returns
+        -------
+        info : dict or list of dicts
+            When no keywords are specified, the function returns a dictionary containing
+            the following information:
+            - The current number of runs stored in `runs` as an integer (keyword is
+                `"runCount"`)
+            - The range of kick values simulated as a tuple of floats (keyword is `"K"`)
+            - The range of simulation lengths as a tuple of ints (keyword is `"nIters"`)
+            - The range of initial values for I across all runs as a tuple of floats
+                (keyword is `"I_0"`)
+            - The range of initial values for theta across all runs as a tuple of floats
+                (keyword is `"theta_0"`)
+
+            If there are no runs stored, then the function returns a dictionary
+            containing the following information:
+            - The current kick value of the `StandardMap` object as a float (keyword is
+                `"K"`)
+            - The current simulation length of the `StandardMap` object as an integer
+                (keyword is `"nIters"`)
+
+            If a single `"run"` index is specified, the function returns a dictionary
+            containing the following information:
+            - The kick value of the run as a float (keyword is `"K"`)
+            - The length of the run as an integer (keyword is `"nIters"`)
+            - All initial conditions in the run as an ndarray (keyword is `"IC"`)
+
+            Passing a range of indices will return a list of dictionaries, each with
+            the same information as above.
+
+        ind : list of ints
+            If a kick value(s) is specified, the function returns a list of all indices
+            in `runs` that used the specified kick value(s). The list will be empty if
+            there are no runs satisfying the search criteria.
+
+            Specifying a simulation length(s) will also return a list of pertinent
+            indices.
+
+        Notes
+        -----
+        The default output is also available as a print statement for a `StandardMap`
+        object.
+        >>> from map.standardMap import StandardMap as sMap
+        >>> import numpy as np
+        >>> obj = sMap()
+        >>> print(obj)
+        Current K: 1.0
+        Current run length: 500
+        No runs yet.
+        >>> ic = np.array([[0.0, np.pi / 2], [np.pi, 3 * np.pi / 2], [2 * np.pi, 0.75]])
+        >>> obj.simulate()
+        >>> print(obj)
+        Number of runs: 1
+        Range of K: [1.0, 1.0]
+        Range of lengths: [500, 500]
+        Range of I(0): [0.0, 6.283185307179586]
+        Range of theta(0): [0.75, 4.71238898038469]
+
+        Examples
+        --------
+        First, instantiate the object:
+
+        >>> import numpy as np
+        >>> from map.standardMap import StandardMap as sMap
+        >>> obj = sMap()
+
+        Information about all runs:
+
+        >>> obj.metadata()
+        {'K': 1.0, 'nIters': 500}
+        >>> for i in range(4):
+        ...     obj.K = 0.25 * (i + 1)
+        ...     obj.nIters = 125 * (i + 1)
+        ...     obj.simulate()
+        ...
+        >>> obj.metadata()
+        {'runCount': 4, 'K': (0.25, 1.0), 'nIters': (125, 500),
+            'I_0': (np.float64(0.014610808396629324), np.float64(4.966025323317397)),
+            'theta_0': (np.float64(3.2590806002527763), np.float64(5.781067100558959))}
+
+        Information about a specific run:
+
+        >>> obj.metadata(run=2)
+        {'K': 0.75, 'nIters': 375, 'IC': array([[2.43983626, 3.77060568]])}
+
+        Information about a range of runs:
+
+        >>> obj.metadata(run=(-3,-1))
+        [{'K': 0.5, 'nIters': 250, 'IC': array([[4.96602532, 5.22501996]])}, {'K': 0.75,
+            'nIters': 375, 'IC': array([[2.43983626, 3.77060568]])}, {'K': 1.0,
+            'nIters': 500, 'IC': array([[0.01461081, 3.2590806 ]])}]
+
+        Searching for a single kick value:
+
+        >>> obj.metadata(K=0.25)
+        [0]
+        >>> obj.metadata(K=3)
+        []
+
+        Searching for a range of kick values:
+
+        >>> obj.metadata(K=(0.5, 1.0))
+        [1, 2, 3]
+        >>> obj.metadata(K=(2.1,2.5))
+        []
+
+        Searching for a single simulation length:
+
+        >>> obj.metadata(N=375)
+        [2]
+        >>> obj.metadata(N=10)
+        []
+
+        Searching for a range of simulation lengths:
+        >>> obj.metadata(N=(100,600))
+        [0, 1, 2, 3]
+        >>> obj.metadata(N=(400,900))
+        [3]
+        """
         # Check for keyword correctness
         assert len(options) < 2
         ind = []
+        # Default info
+        if len(options) < 1:
+            if len(self.runs) > 0:
+                minK = self.runs[0]["K"]
+                maxK = self.runs[0]["K"]
+                minN = self.runs[0]["nIters"]
+                maxN = self.runs[0]["nIters"]
+                minI = np.min(self.runs[0]["run"][:, 0, 0])
+                maxI = np.max(self.runs[0]["run"][:, 0, 0])
+                minT = np.min(self.runs[0]["run"][:, 1, 0])
+                maxT = np.max(self.runs[0]["run"][:, 1, 0])
+                for run in self.runs:
+                    if run["K"] < minK:
+                        minK = run["K"]
+                    if run["K"] > maxK:
+                        maxK = run["K"]
+                    if run["nIters"] < minN:
+                        minN = run["nIters"]
+                    if run["nIters"] > maxN:
+                        maxN = run["nIters"]
+                    check = np.min(run["run"][:, 0, 0])
+                    if check < minI:
+                        minI = check
+                    check = np.max(run["run"][:, 0, 0])
+                    if check > maxI:
+                        maxI = check
+                    check = np.min(run["run"][:, 1, 0])
+                    if check < minT:
+                        minT = check
+                    check = np.max(run["run"][:, 1, 0])
+                    if check > maxT:
+                        maxT = check
+                return {
+                    "runCount": len(self.runs),
+                    "K": (minK, maxK),
+                    "nIters": (minN, maxN),
+                    "I_0": (minI, maxI),
+                    "theta_0": (minT, maxT),
+                }
+            return {"K": self.K, "nIters": self.nIters}
+        # List index info
+        if "run" in options:
+            # Single run info
+            if isinstance(options["run"], int):
+                return {
+                    "K": self.runs[options["run"]]["K"],
+                    "nIters": self.runs[options["run"]]["nIters"],
+                    "IC": self.runs[options["run"]]["run"][:, :, 0],
+                }
+            # Info for range of runs
+            elif isinstance(options["run"], tuple):
+                runs = []
+                assert len(options["run"]) == 2
+                for i in options["run"]:
+                    assert isinstance(i, int)
+                assert options["run"][0] < options["run"][1]
+                assert (
+                    options["run"][0] > -1 and options["run"][1] < len(self.runs)
+                ) or (options["run"][0] > -len(self.runs) and options["run"][1] < 0)
+                for i in range(options["run"][0], options["run"][1] + 1):
+                    run = {
+                        "K": self.runs[i]["K"],
+                        "nIters": self.runs[i]["nIters"],
+                        "IC": self.runs[i]["run"][:, :, 0],
+                    }
+                    runs.append(run)
+                return runs
+            else:
+                raise Exception(
+                    "Only single values or an ascending tuple of two inclusive bounds are allowed."
+                )
+        # K parameter searching
+        elif "K" in options:
+            # Single K search
+            if isinstance(options["K"], float):
+                assert options["K"] >= 0.0
+                for i in range(len(self.runs)):
+                    if self.runs[i]["K"] == options["K"]:
+                        ind.append(i)
+                if len(ind) == 0:
+                    print(f"No runs with K = {options["K"]} found.")
+                return ind
+            # Range of K search
+            elif isinstance(options["K"], tuple):
+                assert len(options["K"]) == 2
+                for i in options["K"]:
+                    assert isinstance(i, float)
+                    assert i >= 0.0
+                assert options["K"][0] < options["K"][1]
+                for i in range(len(self.runs)):
+                    if (
+                        self.runs[i]["K"] >= options["K"][0]
+                        and self.runs[i]["K"] <= options["K"][1]
+                    ):
+                        ind.append(i)
+                if len(ind) == 0:
+                    print(
+                        f"No runs within K = [{options["K"][0]}, {options["K"][1]}] found."
+                    )
+                return ind
+            else:
+                raise Exception(
+                    "Only single values or an ascending tuple of two inclusive bounds are allowed."
+                )
+        # Run length search
+        elif "N" in options:
+            # Single length search
+            if isinstance(options["N"], int):
+                assert options["N"] > 0
+                for i in range(len(self.runs)):
+                    if self.runs[i]["nIters"] == options["N"]:
+                        ind.append(i)
+                if len(ind) == 0:
+                    print(f"No runs of length {options["N"]} found.")
+                return ind
+            # Range of length search
+            elif isinstance(options["N"], tuple):
+                assert len(options["N"]) == 2
+                for i in options["N"]:
+                    assert i > 0
+                    assert isinstance(i, int)
+                assert options["N"][0] < options["N"][1]
+                for i in range(len(self.runs)):
+                    if (
+                        self.runs[i]["nIters"] >= options["N"][0]
+                        and self.runs[i]["nIters"] <= options["N"][1]
+                    ):
+                        ind.append(i)
+                if len(ind) == 0:
+                    print(
+                        f"No runs from length {options["N"][0]} to {options["N"][1]} found."
+                    )
+                return ind
+            else:
+                raise Exception(
+                    "Only single values or an ascending tuple of two inclusive bounds are allowed."
+                )
+        else:
+            raise Exception("Only run index, K search, and run length supported.")
+
+    # Redundancy: __str__
+    # Prints the number of runs and the range of K
+    def __str__(self) -> str:
+        info = self.metadata()
+        if len(self.runs) > 0:
+            return (
+                f"Number of runs: {info['runCount']}\n"
+                f"Range of K: [{info['K'][0]}, {info['K'][1]}]\n"
+                f"Range of lengths: [{info['nIters'][0]}, {info['nIters'][1]}]\n"
+                f"Range of I(0): [{info['I_0'][0]}, {info['I_0'][1]}]\n"
+                f"Range of theta(0): [{info['theta_0'][0]}, {info['theta_0'][1]}]"
+            )
+        return (
+            f"Current K: {info["K"]}\n"
+            f"Current run length: {info["nIters"]}\n"
+            f"No runs yet."
+        )
+
+    def clearRuns(self, **options) -> None:
+        """
+        Removes runs from the directory of current runs. Passing no arguments will
+        remove all runs.
+
+        Parameters
+        ----------
+        **options : single values or two-element ranges
+            Specify a selection of runs to remove.
+
+            Valid keyword arguments are:
+
+            `"run"`: int or tuple of ints
+
+            An index (positive or negative) for the desired run in `runs`, or a
+            monotonically ascending two-element tuple denoting an inclusive range
+            of runs to return information about. Both elements must be the same sign.
+
+            `"K"`: float or tuple of floats
+
+            A kick value to look for in `runs`, or a monotonically ascending two-element
+            tuple denoting an inclusive range of kick values to search for. All values
+            must be nonnegative.
+
+            `"N"`: int or tuple of ints
+
+            A simulation length to look for in `runs`, or a monotonically ascending
+            two-element tuple denoting an inclusive range of simulation lengths to
+            search for. All values must be positive.
+
+        Notes
+        -----
+        Errors will not be raised when the desired `"K"` or `"N"` are not found.
+
+        Examples
+        --------
+        Assume a `StandardMap` object named `obj` exists with an arbitrary number
+        of varied runs.
+
+        Removing all runs:
+
+        >>> obj.clearRuns()
+        All runs cleared.
+        >>> len(obj.runs)
+        0
+
+        Removing a specific run:
+
+        ...earlier simulations...
+        >>> len(obj.runs)
+        39
+        >>> obj.clearRuns(run=4)
+        Run 4 cleared.
+        >>> len(obj.runs)
+        38
+        >>> obj.clearRuns(run=-3)
+        Run 35 cleared.
+        >>> len(obj.runs)
+        37
+
+        Removing a range of runs:
+
+        ...earlier simulations...
+        >>> len(obj.runs)
+        88
+        >>> obj.clearRuns(run=(4,9))
+        Run 4 cleared.
+        Run 5 cleared.
+        Run 6 cleared.
+        Run 7 cleared.
+        Run 8 cleared.
+        Run 9 cleared.
+        >>> len(obj.runs)
+        82
+        >>> obj.clearRuns(run=(-12,-10))
+        Run 70 cleared.
+        Run 71 cleared.
+        Run 72 cleared.
+        >>> len(obj.runs)
+        79
+
+        Removing a single kick value:
+
+        ...earlier simulations...
+        >>> len(obj.runs)
+        42
+        >>> obj.clearRuns(K=0.25)
+        Run 7 cleared.
+        >>> len(obj.runs)
+        41
+        >>> obj.clearRuns(K=2.3)
+        No runs found.
+        >>> len(obj.runs)
+        41
+
+        Removing a range of kick values:
+
+        ...earlier simulations...
+        >>> len(obj.runs)
+        12
+        >>> obj.clearRuns(K=(0.35,0.75))
+        Run 1 cleared.
+        Run 6 cleared.
+        Run 11 cleared.
+        >>> len(obj.runs)
+        9
+        >>> obj.clearRuns(K=(0.1, 0.2))
+        No runs found.
+        >>> len(obj.runs)
+        9
+
+        Removing a single run length:
+
+        ...earlier simulations...
+        >>> len(obj.runs)
+        30
+        >>> obj.clearRuns(N=750)
+        Run 19 cleared.
+        >>> len(obj.runs)
+        29
+        >>> obj.clearRuns(N=335)
+        No runs found.
+        >>> len(obj.runs)
+        29
+
+        Removing a range of run lengths:
+
+        ...earlier simulations...
+        >>> len(obj.runs)
+        57
+        >>> obj.clearRuns(N=(100,400))
+        Run 23 cleared.
+        Run 36 cleared.
+        Run 47 cleared.
+        Run 48 cleared.
+        Run 55 cleared.
+        >>> len(obj.runs)
+        52
+        >>> obj.clearRuns(N=(1000, 2000))
+        No runs found.
+        >>> len(obj.runs)
+        52
+        """
+        # Check for keyword correctness
+        assert len(options) < 2
         # Default clearing
         if len(options) < 1:
             self.runs.clear()
@@ -193,92 +685,359 @@ class StandardMap:
                 raise Exception(
                     "Only single values or an ascending tuple of two inclusive bounds are allowed."
                 )
-        # K parameter clearing
-        elif "K" in options:
-            # Single K clear
-            if isinstance(options["K"], float):
-                assert options["K"] >= 0.0
-                for i in range(len(self.runs)):
-                    if self.runs[i]["K"] == options["K"]:
-                        ind.append(i)
-                        print(f"Run {i + 1} cleared.")
-                if len(ind) == 0:
-                    print(f"No runs with K = {options["K"]} found.")
-                for j in ind:
-                    del self.runs[j]
-            # Range of Ks cleared
-            elif isinstance(options["K"], tuple):
-                assert len(options["K"]) == 2
-                for i in options["K"]:
-                    assert isinstance(i, float)
-                    assert i >= 0.0
-                assert options["K"][0] < options["K"][1]
-                for i in range(len(self.runs)):
-                    if (
-                        self.runs[i]["K"] >= options["K"][0]
-                        and self.runs[i]["K"] <= options["K"][1]
-                    ):
-                        ind.append(i)
-                        print(f"Run {i + 1} cleared.")
-                if len(ind) == 0:
-                    print(
-                        f"No runs within K = [{options["K"][0]}, {options["K"][1]}] found."
-                    )
-                for j in ind:
-                    del self.runs[j]
-            else:
-                raise Exception(
-                    "Only single values or an ascending tuple of two inclusive bounds are allowed."
+        # K parameter and run length clearing
+        elif "K" in options or "N" in options:
+            ind = self.metadata(**options)
+            if len(ind) < 1:
+                print("No runs found.")
+            for i in sorted(ind, reverse=True):
+                print(f"Run {i} cleared.")
+                del self.runs[i]
+        else:
+            raise Exception("Only run index, K search, and run length supported.")
+
+    def write(self, **options) -> None:
+        """
+        Saves simulations to a CSV file. Passing no arguments will save all runs.
+
+        Batches of I and theta values are flattened into a 2D array before saving. Each
+        odd column is `I`, while each even column is `theta`.
+
+        Parameters
+        ----------
+        **options : single entries or lists
+            Customize the file saving process.
+
+            Valid keyword arguments are:
+
+            `"run"`: int, tuple of ints, or list of ints
+
+            An index (positive or negative) for the desired run in `runs`, a
+            monotonically ascending two-element tuple denoting an inclusive range of
+            runs, or a list of run indices. For tuples, both elements must be the same
+            sign; for lists, all values must be nonnegative. The function will
+            automatically remove duplicate indices.
+
+            `"name"`: str or list of str
+
+            Denote the filename(s) that will be used when saving the runs. Filenames
+            are strictly titles without the directory location or filetype. The number
+            of filenames must match the number of runs being saved. The default
+            filename is "K-{kick value}-len-{simulation length}." If a duplicate is
+            found in the folder "results/csvs", then a label "_({number of duplicates})"
+            will be appended to the end of the title.
+
+            `"header"`: str [`np.savetxt` option]
+
+            Text at the top of the CSV file. Default for this function is "I,theta,..."
+            repeated for as many batches as needed to save the run. Regardless of the
+            input, the first two lines will contain the kick value and the RNG seed of
+            the run. **Directly removing this from the CSV will cause the `write`
+            function to fail.**
+
+            `"comments"`: str [`np.savetxt` option]
+
+            How lines that are not part of the saved array will appear. This function
+            removes the comment (empty string) by default.
+
+            `"fmt"`: str [`np.savetxt` option]
+
+            How floats are saved in the CSV file. The default for this function is
+            '%.10f'. See the documentation of `np.savetxt` for further information on
+            valid formatters.
+
+            `"delimiter"`: str [`np.savetxt` option]
+
+            How numbers in a line are separated. This function inserts a tab ("\\t")
+            between values.
+
+            Other arguments can still be passed to `np.savetxt`.
+
+        Notes
+        -----
+        Errors will not be raised if there are no runs to save.
+
+        >>> from map.standardMap import StandardMap as sMap
+        >>> obj = sMap()
+        >>> obj.write()
+        No runs to save yet.
+
+        Examples
+        --------
+        Assume a `StandardMap` object named `obj` exists with an arbitrary number
+        of varied runs.
+
+        >>> obj.write()     # Save all runs using the default naming convention
+        >>> obj.write(run=3)    # Save the third run
+        >>> obj.write(run=(-5,-1))  # Save the last five runs
+        >>> obj.write(run=[3, 7, 15])   # Save specified runs
+        >>> obj.write(run=3, name="myFile")     # Save the third run using a custom filename
+        >>> fNames = ["file1", "file2", "file3"]
+        ... obj.write(run=(1,3), name=fNames)   # Save the first three runs using custom filenames
+        >>> obj.write(header="My CSV")  # Save all runs with a custom header
+        >>> obj.write(fmt='%.3g')   # Save all runs with a custom float format
+        >>> obj.write(delimiter="...")  # Save all runs with a custom delimiter
+        >>> obj.write(comments=">>>")   # Save all runs with a custom prepended string for nonnumeric lines
+        """
+
+        # Helper for duplicate files
+        def _fileCount(name: str, path: os.PathLike) -> int:
+            files = os.listdir(path)
+            count = 0
+            for file in files:
+                match = re.match(rf"{re.escape(name)}_(\d+)\.csv$", file)
+                if match:
+                    count += 1
+            return count
+
+        # Prevent saving if no runs are found
+        if len(self.runs) < 1:
+            print("No runs to save yet.")
+            return
+        # Check how many to save
+        if "run" in options:
+            i = options.pop("run")
+            if isinstance(i, int):
+                ind = [i]
+            elif isinstance(i, tuple):
+                assert len(i) == 2
+                for j in i:
+                    assert isinstance(j, int)
+                assert i[0] < i[1]
+                assert (i[0] > -1 and i[1] < len(self.runs)) or (
+                    i[0] > -len(self.runs) and i[1] < 0
                 )
-        # Run length clearing
-        elif "N" in options:
-            # Single length clear
-            if isinstance(options["N"], int):
-                assert options["N"] > 0
-                for i in range(len(self.runs)):
-                    if self.runs[i]["nIters"] == options["N"]:
-                        ind.append(i)
-                        print(f"Run {i + 1} cleared.")
-                if len(ind) == 0:
-                    print(f"No runs of length {options["N"]} found.")
-                for j in ind:
-                    del self.runs[j]
-            # Range of lengths cleared
-            elif isinstance(options["N"], tuple):
-                assert len(options["N"]) == 2
-                for i in options["N"]:
-                    assert isinstance(i, float)
-                assert options["N"][0] < options["N"][1]
-                for i in range(len(self.runs)):
-                    if (
-                        self.runs[i]["nIters"] >= options["N"][0]
-                        and self.runs[i]["nIters"] <= options["N"][1]
-                    ):
-                        ind.append(i)
-                        print(f"Run {i + 1} cleared.")
-                if len(ind) == 0:
-                    print(
-                        f"No runs from length {options["N"][0]} to {options["N"][1]} found."
-                    )
-                for j in ind:
-                    del self.runs[j]
+                ind = [*range(i[0], i[1] + 1)]
+            elif isinstance(i, list):
+                assert len(i) > 0
+                seen = set()
+                rep = 0
+                for j in i:
+                    assert isinstance(j, int)
+                    assert j > -1 and j < len(self.runs)
+                    if j in seen:
+                        rep += 1
+                    else:
+                        seen.add(j)
+                assert rep < 1
+                ind = i
             else:
                 raise Exception(
-                    "Only single values or an ascending tuple of two inclusive bounds are allowed."
+                    "Only single values, an ascending tuple of two inclusive bounds, or a list of nonnegative indices are allowed."
                 )
         else:
-            raise Exception("Only run index and K search supported.")
+            ind = [*range(len(self.runs))]
+        # Check for given names
+        if "name" in options:
+            fname = options.pop("name")
+            if len(ind) < 2:
+                assert isinstance(fname, str)
+                rep = _fileCount(fname, "results\\csvs")
+                if rep > 0:
+                    fname += f"_{rep}"
+                fname = ["results\\csvs\\" + fname + ".csv"]
+            else:
+                assert isinstance(fname, list)
+                assert len(fname) == len(ind)
+                for i, name in enumerate(fname):
+                    assert isinstance(name, str)
+                    rep = _fileCount(name, "results\\csvs")
+                    newRep = fname[:i].count("results\\csvs\\" + fname[-1] + ".csv")
+                    if rep + newRep > 0:
+                        fname[i] += f"_{rep + newRep}"
+                    fname[i] = "results\\csvs\\" + name + ".csv"
+        else:
+            fname = []
+            for i, j in enumerate(ind):
+                run = self.runs[j]
+                fname.append(f"K-{run["K"]}-len-{run["nIters"]}")
+                rep = _fileCount(fname[-1], "results\\csvs")
+                newRep = fname[:-1].count("results\\csvs\\" + fname[-1] + ".csv")
+                if rep + newRep > 0:
+                    fname[-1] += f"_{rep + newRep}"
+                fname[-1] = "results\\csvs\\" + fname[-1] + ".csv"
+        # Saving using savetxt
+        userHeader = options.get("header")
+        for i, j in enumerate(ind):
+            run = self.runs[j]
+            arr = run["run"].reshape((run["nSim"] * 2, run["nIters"] + 1))
+            htxt = ",".join(["I,theta"] * run["nSim"])
+            if userHeader is None:
+                header = htxt
+            else:
+                header = userHeader
+            options["header"] = f"K = {run["K"]}\nseed = {run["seed"]}\n{header}"
+            if "fmt" not in options:
+                options["fmt"] = "%.10f"
+            if "delimiter" not in options:
+                options["delimiter"] = "\t"
+            if "comments" not in options:
+                options["comments"] = ""
+            np.savetxt(fname[i], arr.T, **options)
+            header = ""
 
-    # Function: write to CSV
-    # Option to select ith array to write
-    # i can be a range
-    # Option to write ALL arrays to CSVs -- default
-    # Supply kwargs to savetxt function
-    # Reserve kwarg "name" as filename (can be path)
-    # Default has header txt of "K = [val]"
-    # Default saves I then theta w/ col headers "I,theta"
-    # Default names file "[K]-[val]-len-[nIters].csv"
-    # Default adds " ([number])" if filename taken
-    # Default save location is "results/csvs"
-    def write(self):
-        pass
+    def read(self, fname: str | list[str,], insert: str = "append", **options) -> None:
+        """
+        Reads in CSV files and adds them to the list of runs.
+
+        Parameters
+        ----------
+        fname : str or list of str
+            The files to look for in "results/csvs". Filenames are strictly titles
+            without the directory location or filetype. **Files from other directory
+            locations will not be accepted.**
+
+        insert : str, optional
+            How the simulation is added to `runs`. `"append"` (default) adds the
+                simulation to the end of the list, while `"overwrite"` replaces the
+                last n runs with the imported ones.
+
+        **options : single entries or lists
+            Specify the various characteristics of the CSVs being read.
+
+            Valid keyword arguments are:
+
+            `"delimiter"`: str [`np.loadtxt` option]
+
+            How numbers in a line are separated. This function assumes a tab ("\\t")
+            between values.
+
+            `"skiprows"`: int [`np.loadtxt` option]
+
+            The number of lines to skip, including headers and comments. This function
+            assumes the default header from `write` is used (3 lines). **CSVs without a
+            header denoting the kick value and RNG seed will raise an error, so the
+            minimum value is 2.**
+
+            Other arguments can still be passed to `np.loadtxt`.
+
+        Notes
+        -----
+        An example CSV looks like this:
+        ```
+        K = 1.254
+        seed = None
+        I,theta,I,theta
+        0.489321481\t\t1.051512058\t2.181263055\t5.165028944
+        4.000518485\t\t0.021515130\t0.158545162\t3.059456023
+        ...
+        ```
+        The first two lines must be present for `write` to function. They provide
+        information about the run's kick value and RNG seed.
+
+        The third line can be replaced with an arbitrary number of custom headers as
+        long as `skiprows` has the right amount of lines to skip.
+
+        The rest of the rows are the simulation values (separated by a tab delimiter
+        here). Each pair of columns represents `I` and `theta` in that order. Batches
+        will be stacked from front to back in the `runs` entry as they are read in from
+        left to right.
+
+        Specify a delimiter for `delimiter` to read in a custom separation method.
+
+        All text values can have a custom preceding string if `comments` is passed to
+        the function.
+
+        Other customizations are permitted as long as they are compatible with
+        `np.loadtxt`. Read that function's documentation for more details.
+
+        Examples
+        -----
+        Assume a `StandardMap` object named `obj` exists with an arbitrary number of
+        varied runs.
+
+        Reading in a single CSV:
+
+        >>> len(obj.runs)
+        32
+        >>> obj.read("K-0.7-len-215")   # Filename may be different
+        >>> len(obj.runs)
+        33
+
+        Reading in a list of CSVs:
+
+        ...earlier simulations...
+        >>> fNames = ["bob", "cam", "psir"] # Filenames may differ
+        >>> len(obj.runs)
+        77
+        >>> obj.read(fNames)
+        >>> len(obj.runs)
+        80
+
+        Overwriting earlier runs:
+
+        ...earlier simulations...
+        >>> fNames = ["rep1", "rep2"]   # Filenames may differ
+        >>> len(obj.runs)
+        111
+        >>> obj.read(fNames, "overwrite")
+        >>> len(obj.runs)
+        111
+
+        Overwriting this function's `np.loadtxt` options. All filenames may be
+        different.
+
+        >>> obj.read("myCSV", delimiter="++")   # Read in a CSV with a custom delimter
+        >>> obj.read("myCSV2", skiprows=6)  # Read in a CSV with a custom header
+        """
+        if "delimiter" not in options:
+            options["delimiter"] = "\t"
+        if "skiprows" not in options:
+            options["skiprows"] = 3
+        # Read files
+        fileRuns = []
+        if isinstance(fname, str):
+            file = open(f"results\\csvs\\{fname}.csv")
+            kVal = float(file.readline().split(" ")[-1])
+            seedVal = file.readline().split(" ")[-1]
+            seedVal = seedVal.replace("\n", "")
+            if seedVal != "None":
+                seedVal = int(seedVal)
+            else:
+                seedVal = None
+            arr = np.loadtxt(
+                f"results\\csvs\\{fname}.csv",
+                **options,
+            )
+            run = {
+                "K": kVal,
+                "nIters": arr.shape[0] - 1,
+                "seed": seedVal,
+                "run": arr.T.reshape((int(arr.shape[1] / 2), 2, arr.shape[0])),
+                "nSim": int(arr.shape[1] / 2),
+            }
+            fileRuns.append(run)
+        elif isinstance(fname, list):
+            for name in fname:
+                assert isinstance(name, str)
+                file = open(f"results\\csvs\\{name}.csv")
+                kVal = float(file.readline().split(" ")[-1])
+                seedVal = file.readline().split(" ")[-1]
+                seedVal = seedVal.replace("\n", "")
+                if seedVal != "None":
+                    seedVal = int(seedVal)
+                else:
+                    seedVal = None
+                arr = np.loadtxt(
+                    f"results\\csvs\\{name}.csv",
+                    **options,
+                )
+                run = {
+                    "K": kVal,
+                    "nIters": arr.shape[0] - 1,
+                    "seed": seedVal,
+                    "run": arr.T.reshape((int(arr.shape[1] / 2), 2, arr.shape[0])),
+                    "nSim": int(arr.shape[1] / 2),
+                }
+                fileRuns.append(run)
+        else:
+            raise Exception("Only a file name or a list of file names are allowed.")
+        # Add to current object
+        if insert == "append":
+            self.runs.extend(fileRuns)
+        elif insert == "overwrite":
+            self.runs[-len(fileRuns) :] = fileRuns
+        else:
+            raise Exception(
+                'Invalid option. Only "append" and "overwrite" are allowed.'
+            )

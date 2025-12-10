@@ -2,7 +2,15 @@
 ### By: Nguyen Ly, Enrique Lopez, Carlos Solis, and Hazel Moore.
 
 # Table of Contents
-A
+1. [Getting Started](#getting-started)
+2. [Introduction](#introduction)
+3. [The Standard Map](#the-standard-map)
+4. [Properties](#properties)
+5. [Working Examples](#working-examples)
+6. [Current Code Structure](#current-code-structure-updated-12092025)
+7. [Future Directions](#future-directions)
+8. [References](#references)
+9. [Credits](#credits)
 
 # Getting Started
 
@@ -119,9 +127,9 @@ and much more.
 
 The Standard Map is an **area-preserving** map
 
-# Working Example
+# Working Examples
 
-Please ensure that all modules have been imported in [step 6](###-6.-Import-Relevant-Modules) before proceeding.
+Please ensure that all modules have been imported in [step 6](#6-import-relevant-modules) before proceeding.
 
 ## Phase Space Plots
 
@@ -269,7 +277,7 @@ In regards to code improvement, several changes would be favorable:
 - merging runs with identical kick values and RNG seeds
 As for theoretical exploration, the following ideas arise:
 - expand to the classical [kicked rotator](https://www.sciencedirect.com/science/article/pii/S0960077905005485?via%3Dihub) system upon which the Standard Map is derived
-- apply the Standard Map to the physical examples listed [above](#The-Standard-Map)
+- apply the Standard Map to the physical examples listed [above](#the-standard-map)
 - study the [Kolmogorov-Sinai Entropy](https://mathworld.wolfram.com/KolmogorovEntropy.html) of the system
 
 # References

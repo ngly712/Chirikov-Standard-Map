@@ -9,15 +9,14 @@ Scripts should be run from the repository root so that imports (e.g., `from map.
 
 ## Getting Started
 
-See [this section](README.md) on setting up your environment.
+See [this section](README.md) on setting up your environment. The examples below assume that step 6 is complete.
 
 ## Plotting Phase-Space Diagrams
 
-### Import Relevant Modules
+### Import Plotter Function
 
 ```python
-from map.standardMap import StandardMap
-from plots.mapPlot import plot_phase_generic
+from plots.mapPlot import plot_phase_generic as pltPhase
 ```
 
 ### Small K: Mostly Invariant Curves (KAM Tori)
@@ -27,11 +26,11 @@ K = 0.2
 n_iters = 5000
 n_sim = 25
 
-aMap = StandardMap(K=K, nIters=n_iters, seed=1)
+aMap = sMap(K=K, nIters=n_iters, seed=1)
 aMap.simulate(ic=n_sim)
 run = aMap.runs[-1]["run"]
 
-plot_phase_generic(
+pltPhase(
     run=run,
     mode="phase",
     point_size=0.15,
@@ -42,14 +41,13 @@ plot_phase_generic(
 ### Moderate K: Resonance Islands, Periodic Orbits, Cantori
 
 ```python
-K = 0.7
+aMap.K = 0.7
 n_sim = 50
 
-aMap = StandardMap(K=K, nIters=n_iters, seed=1)
 aMap.simulate(ic=n_sim)
 run = aMap.runs[-1]["run"]
 
-plot_phase_generic(
+pltPhase(
     run=run,
     mode="phase",
     point_size=0.15,
@@ -60,14 +58,13 @@ plot_phase_generic(
 ### Large K: Mostly Chaotic Sea
 
 ```python
-K = 2.0
+aMap.K = 2.0
 n_sim = 100
 
-aMap = StandardMap(K=K, nIters=n_iters, seed=1)
 aMap.simulate(ic=n_sim)
 run = aMap.runs[-1]["run"]
 
-plot_phase_generic(
+pltPhase(
     run=run,
     mode="phase",
     point_size=0.15,
@@ -77,17 +74,10 @@ plot_phase_generic(
 
 ## Plotting an $IK$ Diagnostic Sweep
 
-### Import Relevant Modules + Adjust Display Settings
+### Import Plotting Function + Adjust Display Settings
 
 ```python
-# standard Python libraries
-import numpy as np
-import matplotlib.pyplot as plt
-# project modules
-from map.standardMap import StandardMap
-from plots.mapEval import MapEvaluator
-from plots.mapPlot import plot_IK_diagnostic
-
+from plots.mapPlot import plot_IK_diagnostic as plotDiag
 # matplotlib defaults (optional for nicer plots)
 plt.rcParams["figure.dpi"] = 120
 plt.rcParams["axes.grid"] = False
@@ -112,14 +102,14 @@ n_tail  = 300         # tail length for diagnostic plot
 seed = 1              # seed used inside StandardMap
 
 # generate runs via StandardMap
-aMap = StandardMap(K=Ks[0], nIters=n_iters, seed=seed)
+aMap = sMap(K=Ks[0], nIters=n_iters, seed=seed)
 
 for K in Ks:
     aMap.K = K
     aMap.simulate(ic=n_sim)
 
 # wrap runs in a MapEvaluator
-evaluator = MapEvaluator(aMap.runs)
+evaluator = mEval(aMap.runs)
 
 print(f"Completed {len(aMap.runs)} runs with K in [{K_min}, {K_max}].")
 ```
@@ -127,13 +117,13 @@ print(f"Completed {len(aMap.runs)} runs with K in [{K_min}, {K_max}].")
 ### Plot Diagnostic Sweep
 
 ```python
-plot_IK_diagnostic(
+plotDiagS(
     evaluator=evaluator,
     n_tail=n_tail,
     K_min=K_min,
     K_max=K_max,
     title="Standard Map I-K Diagnostic Plot",
-    max_points=50_000,    # subsample for readability
+    max_points=50000,    # subsample for readability
     point_size=0.1,
     alpha=0.3,
 )

@@ -56,7 +56,9 @@ This step is optional but recommended for development.
 
 ```python
 import numpy as np
-from map.standardMap import StandardMap
+import matplotlib.pyplot as plt
+from map.standardMap import StandardMap as sMap
+from plots.mapEval import MapEvaluator as mEval
 ```
 
 # Introduction
@@ -75,7 +77,7 @@ Parallel to this definition is the Lyapunov time, the inverse of the largest Lya
 
 ## Topological Transivity
 
-A system's “topological transitivity” refers to the impossibility of defining a clear boundary for the system's trajectory from a range of finite initial conditions. Formally, the mapping $f:X\to X$ is topologically transitive if, for any pair of non-empty open sets $U,V\in X$, there exists a positive $k$ such that $f^k(U)\cap V\neq \empty$. This means that any point in $U$ (assumed not to be in $V$) will eventually enter $V$ after being iterated upon by $f$ enough times. Therefore, defining any pair of separated open sets $U$ and $V$ is impossible [4].
+A system's “topological transitivity” refers to the impossibility of defining a clear boundary for the system's trajectory from a range of finite initial conditions. Formally, the mapping $f:X\to X$ is topologically transitive if, for any pair of non-empty open sets $U,V\in X$, there exists a positive $k$ such that $f^k(U)\cap V\neq \emptyset$. This means that any point in $U$ (assumed not to be in $V$) will eventually enter $V$ after being iterated upon by $f$ enough times. Therefore, defining any pair of separated open sets $U$ and $V$ is impossible [4].
 
 <p align='center'>
 <b>Topological mixing of the logistic map after six iterations</b> [7]
@@ -116,6 +118,99 @@ and much more.
 ## Properties
 
 The Standard Map is an **area-preserving** map
+
+# Working Example
+
+Please ensure that all modules have been imported in [step 6](###-6.-Import-Relevant-Modules) before proceeding.
+
+## Phase Space Plots
+
+The following code will generate phase space plots for $K = 0.2, 0.6, 0.97, 1.2, 2.0$ and the corresponding CSVs.
+
+```python
+from plots.mapPlot import plot_phase_tail as pltTail
+
+K_values = [0.2, 0.6, 0.97, 1.2, 2.0]
+
+n_iters = 3500                   # Iterations per orbit
+n_orbits = 200                   # Number of orbits per K (initial conditions)
+
+# Create a StandardMap object
+aMap = sMap(nIters = n_iters)    # K will be set in the loop
+
+for K in K_values:
+    aMap.K = K
+    aMap.simulate(ic = n_orbits) # Append a run with this K to aMap.runs
+
+aMap.write()                     # Save all of the runs as CSVs
+
+mEval = mEval(aMap.runs)         # Create a MapEvaluator object
+
+n_tail = 1000                    # Number of late-time points per orbit to plot
+
+for idx, K in enumerate(K_values):
+    title = rf"Standard Map Phase Space, $K = {K}$"
+
+    plot_phase_tail(
+        evaluator = mEval,
+        run_idx = idx,
+        n_tail = n_tail,
+        point_size = 0.1,
+        title = title,
+    )
+```
+
+<img src="results/plots/K0.2.png" alt="K-0.2-phase" style="display:block; margin:0 auto; max-width:100%; height:auto;">
+
+<img src="results/plots/K0.6.png" alt="K-0.2-phase" style="display:block; margin:0 auto; max-width:100%; height:auto;">
+
+<img src="results/plots/K0.97.png" alt="K-0.2-phase" style="display:block; margin:0 auto; max-width:100%; height:auto;">
+
+<img src="results/plots/K1.2.png" alt="K-0.2-phase" style="display:block; margin:0 auto; max-width:100%; height:auto;">
+
+<img src="results/plots/K2.0.png" alt="K-0.2-phase" style="display:block; margin:0 auto; max-width:100%; height:auto;">
+
+## Diagnostic Plots
+
+```python
+from plots.mapPlot import plot_IK_diagnostic as plotDiag
+# matplotlib defaults (optional for nicer plots)
+plt.rcParams["figure.dpi"] = 120
+plt.rcParams["axes.grid"] = False
+
+# parameters for the IK diagnostic sweep
+K_min = 0.0
+K_max = 2.0
+n_K   = 400           # number of K values
+Ks    = np.linspace(K_min, K_max, n_K)
+
+n_sim   = 10          # number of ICs at each K (each set of ICs produces one orbit)
+n_iters = 5000        # iterations per orbit
+n_tail  = 300         # tail length for diagnostic plot
+
+# generate runs via StandardMap
+aMap = sMap(K=Ks[0], nIters=n_iters, seed=seed)
+
+for K in Ks:
+    aMap.K = K
+    aMap.simulate(ic=n_sim)
+
+# wrap runs in a MapEvaluator
+evaluator = mEval(aMap.runs)
+
+plotDiagS(
+    evaluator=evaluator,
+    n_tail=n_tail,
+    K_min=K_min,
+    K_max=K_max,
+    title="Standard Map I-K Diagnostic Plot",
+    max_points=50000,    # subsample for readability
+    point_size=0.1,
+    alpha=0.3,
+)
+```
+
+<img src="results/plots/diagnostic_0.0_2.0.png" alt="K-0.2-phase" style="display:block; margin:0 auto; max-width:100%; height:auto;">
 
 # Current Code Structure (Updated 12/09/2025)
 ```

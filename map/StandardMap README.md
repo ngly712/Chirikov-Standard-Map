@@ -9,7 +9,7 @@ Scripts should be run from the repository root so that imports (e.g., `from map.
 
 ## Getting Started
 
-See [this section](README.md) on setting up your environment.
+See [this section](README.md) on setting up your environment. The examples below assume that step 6 is complete.
 
 ## Using `StandardMap` from the Command Line
 

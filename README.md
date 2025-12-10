@@ -114,7 +114,7 @@ The Taylor-Greene-Chirikov Map, or Standard Map, is a two-dimensional discrete-t
 > $\theta_{n+1} = (\theta_n + I_{n+1}) \bmod 2\pi$
 > </p>
 
-$I$ and $\theta$ are periodic real-valued variables within $[0, 2\pi)$, while $K$ is a nonnegative real number. The exact value of $K$ that results in chaotic behavior is not known, but several papers ([here](https://arxiv.org/pdf/2509.11593) and [here](https://pubs.aip.org/aip/jmp/article-abstract/20/6/1183/449401/A-method-for-determining-a-stochastic-transition?redirectedFrom=fulltext), for example) have attempted to identify a reasonable bound for the coefficient.
+$I$ and $\theta$ are periodic real-valued variables within $[0, 2\pi)$, while $K$ is a nonnegative real number representing the kick value. The exact value of $K$ that results in chaotic behavior is not known, but several papers ([here](https://arxiv.org/pdf/2509.11593) and [here](https://pubs.aip.org/aip/jmp/article-abstract/20/6/1183/449401/A-method-for-determining-a-stochastic-transition?redirectedFrom=fulltext), for example) have attempted to identify a reasonable bound for the coefficient.
 
 This chaotic mapping is surprisingly commonplace (hence the *Standard* moniker), appearing in:
 - the dynamics of charged particles in mirror magnetic traps [9]
@@ -123,9 +123,11 @@ This chaotic mapping is surprisingly commonplace (hence the *Standard* moniker),
 - the microwave ionization of Rydberg atoms [12]
 and much more.
 
-## Properties
+## Properties [13]
 
-The Standard Map is an **area-preserving** map
+The Standard Map is an **area-preserving** map due to the modulo functions, which means that the state variables can be mapped onto a torus. At low values of $K$, the invariant Kolmogorov-Arnold-Moser (KAM) curves are well-defined and prevent the momentum $I$ from taking on values beyond a certain "width" based on its initial value &mdash; thereby preventing chaotic behavior from appearing.
+
+Beyond $K\approx 0.971635...$, the last KAM curve is destroyed, leading to "tori" or islands of stable orbits embedded in a densely-packed swath of chaos. As $K$ increases, the size of the islands shrink as the variation of $I$ is characterized by a diffusive growth patter: $I^2\simeq D_0t$, where $t$ is the number of iterations of the Standard Map.
 
 # Working Examples
 
@@ -294,6 +296,7 @@ As for theoretical exploration, the following ideas arise:
 10. F.M.Izraelev, "Nearly linear mappings and their applications", Physica D 1(3): 243 (1980).
 11. T.Y.Petrosky, "Chaos and cometary clouds in the solar system", Phys. Lett. A 117(7): 328 (1986).
 12. G.Casati, I.Guarneri, D.L.Shepelyansky, "Hydrogen atom in monochromatic field: chaos and dynamical photonic localization", IEEE J. of Quant. Elect. 24: 1420 (1988).
+13. Boris Chirikov and Dima Shepelyansky (2008) Chirikov standard map. Scholarpedia, 3(3):3550.
 
 # Credits
 - Nguyen: `standardMap.py` class structure, utility functions, unit tests, front page README, and StandardMap README

@@ -7,6 +7,10 @@ This repository is organized into three main Python modules:
 
 Scripts should be run from the repository root so that imports (e.g., `from map.standardMap import StandardMap`) resolve correctly.
 
+## Getting Started
+
+See [this section](README.md) on setting up your environment.
+
 ## Plotting Phase-Space Diagrams
 
 ### Import Relevant Modules

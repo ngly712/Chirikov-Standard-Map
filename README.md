@@ -190,7 +190,7 @@ plt.rcParams["axes.grid"] = False
 
 # parameters for the IK diagnostic sweep
 K_min = 0.0
-K_max = 2.0
+K_max = 5.0
 n_K   = 400           # number of K values
 Ks    = np.linspace(K_min, K_max, n_K)
 

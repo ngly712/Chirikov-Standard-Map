@@ -12,7 +12,8 @@ def plot_phase_generic(
     title: Optional[str] = None,
 ) -> None:
     """
-    Plot phase-space data from a single standard map run array.
+    Plot phase-space data from a single standard map run array. See the attached README
+    in this folder for examples.
 
     Parameters
     ----------
@@ -97,6 +98,8 @@ def plot_phase_tail(
     This function uses the last ``n_tail`` points from all trajectories in
     a single run and plots them as a scatter cloud in (theta, I) space.
 
+    See the attached README in this folder for examples.
+
     Parameters
     ----------
     evaluator : MapEvaluator
@@ -147,6 +150,8 @@ def plot_IK_diagnostic(
     It shows a sweep over K with late-time I_n values to
     visualize the breakdown of invariant structures and the onset of
     chaos.
+
+    See the attached README in this folder for examples.
 
     Parameters
     ----------

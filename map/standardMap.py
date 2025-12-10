@@ -346,47 +346,31 @@ class StandardMap:
         >>> obj.metadata(N=(400,900))
         [3]
         """
+
+        # Helper for checking tuple entries
+        def _rangeCheck(val: tuple[int,], length: int) -> None:
+            assert isinstance(val, tuple) and len(val) == 2 and val[0] < val[1]
+            assert all(isinstance(i, int) for i in val)
+            assert (val[0] > -1 and val[1] < length) or (
+                val[0] > -length - 1 and val[1] < 0
+            )
+
         # Check for keyword correctness
         assert len(options) < 2
         ind = []
         # Default info
-        if len(options) < 1:
-            if len(self.runs) > 0:
-                minK = self.runs[0]["K"]
-                maxK = self.runs[0]["K"]
-                minN = self.runs[0]["nIters"]
-                maxN = self.runs[0]["nIters"]
-                minI = np.min(self.runs[0]["run"][:, 0, 0])
-                maxI = np.max(self.runs[0]["run"][:, 0, 0])
-                minT = np.min(self.runs[0]["run"][:, 1, 0])
-                maxT = np.max(self.runs[0]["run"][:, 1, 0])
-                for run in self.runs:
-                    if run["K"] < minK:
-                        minK = run["K"]
-                    if run["K"] > maxK:
-                        maxK = run["K"]
-                    if run["nIters"] < minN:
-                        minN = run["nIters"]
-                    if run["nIters"] > maxN:
-                        maxN = run["nIters"]
-                    check = np.min(run["run"][:, 0, 0])
-                    if check < minI:
-                        minI = check
-                    check = np.max(run["run"][:, 0, 0])
-                    if check > maxI:
-                        maxI = check
-                    check = np.min(run["run"][:, 1, 0])
-                    if check < minT:
-                        minT = check
-                    check = np.max(run["run"][:, 1, 0])
-                    if check > maxT:
-                        maxT = check
+        if not options:
+            if self.runs:
+                Ks = [run["K"] for run in self.runs]
+                Ns = [run["nIters"] for run in self.runs]
+                I0s = np.concatenate([run["run"][:, 0, 0] for run in self.runs])
+                T0s = np.concatenate([run["run"][:, 1, 0] for run in self.runs])
                 return {
                     "runCount": len(self.runs),
-                    "K": (minK, maxK),
-                    "nIters": (minN, maxN),
-                    "I_0": (minI, maxI),
-                    "theta_0": (minT, maxT),
+                    "K": (min(Ks), max(Ks)),
+                    "nIters": (min(Ns), max(Ns)),
+                    "I_0": (np.min(I0s), np.max(I0s)),
+                    "theta_0": (np.min(T0s), np.max(T0s)),
                 }
             return {"K": self.K, "nIters": self.nIters}
         # List index info
@@ -400,22 +384,15 @@ class StandardMap:
                 }
             # Info for range of runs
             elif isinstance(options["run"], tuple):
-                runs = []
-                assert len(options["run"]) == 2
-                for i in options["run"]:
-                    assert isinstance(i, int)
-                assert options["run"][0] < options["run"][1]
-                assert (
-                    options["run"][0] > -1 and options["run"][1] < len(self.runs)
-                ) or (options["run"][0] > -len(self.runs) and options["run"][1] < 0)
-                for i in range(options["run"][0], options["run"][1] + 1):
-                    run = {
+                _rangeCheck(options["run"], len(self.runs))
+                return [
+                    {
                         "K": self.runs[i]["K"],
                         "nIters": self.runs[i]["nIters"],
                         "IC": self.runs[i]["run"][:, :, 0],
                     }
-                    runs.append(run)
-                return runs
+                    for i in range(options["run"][0], options["run"][1] + 1)
+                ]
             else:
                 raise Exception(
                     "Only single values or an ascending tuple of two inclusive bounds are allowed."
@@ -425,26 +402,22 @@ class StandardMap:
             # Single K search
             if isinstance(options["K"], float):
                 assert options["K"] >= 0.0
-                for i in range(len(self.runs)):
-                    if self.runs[i]["K"] == options["K"]:
-                        ind.append(i)
-                if len(ind) == 0:
+                ind = [i for i, run in enumerate(self.runs) if run["K"] == options["K"]]
+                if not ind:
                     print(f"No runs with K = {options["K"]} found.")
                 return ind
             # Range of K search
             elif isinstance(options["K"], tuple):
-                assert len(options["K"]) == 2
-                for i in options["K"]:
-                    assert isinstance(i, float)
-                    assert i >= 0.0
+                assert len(options["K"]) == 2 and all(
+                    isinstance(k, float) and k >= 0.0 for k in options["K"]
+                )
                 assert options["K"][0] < options["K"][1]
-                for i in range(len(self.runs)):
-                    if (
-                        self.runs[i]["K"] >= options["K"][0]
-                        and self.runs[i]["K"] <= options["K"][1]
-                    ):
-                        ind.append(i)
-                if len(ind) == 0:
+                ind = [
+                    i
+                    for i, run in enumerate(self.runs)
+                    if options["K"][0] <= run["K"] <= options["K"][1]
+                ]
+                if not ind:
                     print(
                         f"No runs within K = [{options["K"][0]}, {options["K"][1]}] found."
                     )
@@ -458,26 +431,26 @@ class StandardMap:
             # Single length search
             if isinstance(options["N"], int):
                 assert options["N"] > 0
-                for i in range(len(self.runs)):
-                    if self.runs[i]["nIters"] == options["N"]:
-                        ind.append(i)
-                if len(ind) == 0:
+                ind = [
+                    i
+                    for i, run in enumerate(self.runs)
+                    if run["nIters"] == options["N"]
+                ]
+                if not ind:
                     print(f"No runs of length {options["N"]} found.")
                 return ind
             # Range of length search
             elif isinstance(options["N"], tuple):
-                assert len(options["N"]) == 2
-                for i in options["N"]:
-                    assert i > 0
-                    assert isinstance(i, int)
+                assert len(options["N"]) == 2 and all(
+                    isinstance(n, int) and n > 0 for n in options["N"]
+                )
                 assert options["N"][0] < options["N"][1]
-                for i in range(len(self.runs)):
-                    if (
-                        self.runs[i]["nIters"] >= options["N"][0]
-                        and self.runs[i]["nIters"] <= options["N"][1]
-                    ):
-                        ind.append(i)
-                if len(ind) == 0:
+                ind = [
+                    i
+                    for i, run in enumerate(self.runs)
+                    if options["N"][0] - 1 < run["nIters"] < options["N"][1] + 1
+                ]
+                if not ind:
                     print(
                         f"No runs from length {options["N"][0]} to {options["N"][1]} found."
                     )
@@ -650,10 +623,16 @@ class StandardMap:
         >>> len(obj.runs)
         52
         """
+
+        # Helper to print what runs were removed
+        def _dispClears(indices: list[int,]) -> None:
+            for i in sorted(indices):
+                print(f"Run {i} cleared.")
+
         # Check for keyword correctness
         assert len(options) < 2
         # Default clearing
-        if len(options) < 1:
+        if not options:
             self.runs.clear()
             print("All runs cleared.")
             return
@@ -661,26 +640,22 @@ class StandardMap:
         if "run" in options:
             # Single run clear
             if isinstance(options["run"], int):
-                del self.runs[options["run"]]
-                if options["run"] > -1:
-                    print(f"Run {options["run"]} cleared.")
-                else:
-                    print(f"Run {len(self.runs) + 1 + options["run"]} cleared.")
+                ind = (
+                    options["run"]
+                    if options["run"] >= 0
+                    else len(self.runs) + options["run"]
+                )
+                del self.runs[ind]
+                print(f"Run {ind} cleared.")
             # Range of runs cleared
             elif isinstance(options["run"], tuple):
                 assert len(options["run"]) == 2
-                for i in options["run"]:
-                    assert isinstance(i, int)
                 assert options["run"][0] < options["run"][1]
                 assert (
                     options["run"][0] > -1 and options["run"][1] < len(self.runs)
                 ) or (options["run"][0] > -len(self.runs) and options["run"][1] < 0)
                 del self.runs[options["run"][0] : options["run"][1] + 1]
-                for i in range(options["run"][0], options["run"][1] + 1):
-                    if i > -1:
-                        print(f"Run {i} cleared.")
-                    else:
-                        print(f"Run {len(self.runs) + 1 + i} cleared.")
+                _dispClears(list(range(options["run"][0], options["run"][1] + 1)))
             else:
                 raise Exception(
                     "Only single values or an ascending tuple of two inclusive bounds are allowed."
@@ -688,11 +663,12 @@ class StandardMap:
         # K parameter and run length clearing
         elif "K" in options or "N" in options:
             ind = self.metadata(**options)
-            if len(ind) < 1:
+            if not ind:
                 print("No runs found.")
+                return
             for i in sorted(ind, reverse=True):
-                print(f"Run {i} cleared.")
                 del self.runs[i]
+            _dispClears(ind)
         else:
             raise Exception("Only run index, K search, and run length supported.")
 
@@ -783,15 +759,11 @@ class StandardMap:
         # Helper for duplicate files
         def _fileCount(name: str, path: os.PathLike) -> int:
             files = os.listdir(path)
-            count = 0
-            for file in files:
-                match = re.match(rf"{re.escape(name)}_(\d+)\.csv$", file)
-                if match:
-                    count += 1
-            return count
+            pattern = re.compile(rf"{re.escape(name)}(_\d+)?\.csv$")
+            return sum(1 for file in files if pattern.match(file))
 
         # Prevent saving if no runs are found
-        if len(self.runs) < 1:
+        if not self.runs:
             print("No runs to save yet.")
             return
         # Check how many to save
@@ -800,33 +772,20 @@ class StandardMap:
             if isinstance(i, int):
                 ind = [i]
             elif isinstance(i, tuple):
-                assert len(i) == 2
-                for j in i:
-                    assert isinstance(j, int)
-                assert i[0] < i[1]
+                assert len(i) == 2 and i[0] < i[1]
                 assert (i[0] > -1 and i[1] < len(self.runs)) or (
                     i[0] > -len(self.runs) and i[1] < 0
                 )
-                ind = [*range(i[0], i[1] + 1)]
+                ind = list(range(i[0], i[1] + 1))
             elif isinstance(i, list):
-                assert len(i) > 0
-                seen = set()
-                rep = 0
-                for j in i:
-                    assert isinstance(j, int)
-                    assert j > -1 and j < len(self.runs)
-                    if j in seen:
-                        rep += 1
-                    else:
-                        seen.add(j)
-                assert rep < 1
-                ind = i
+                assert all(isinstance(j, int) and -1 < j < len(self.runs) for j in i)
+                ind = list(dict.fromkeys(i))
             else:
                 raise Exception(
                     "Only single values, an ascending tuple of two inclusive bounds, or a list of nonnegative indices are allowed."
                 )
         else:
-            ind = [*range(len(self.runs))]
+            ind = list(range(len(self.runs)))
         # Check for given names
         if "name" in options:
             fname = options.pop("name")
@@ -837,8 +796,7 @@ class StandardMap:
                     fname += f"_{rep}"
                 fname = ["results\\csvs\\" + fname + ".csv"]
             else:
-                assert isinstance(fname, list)
-                assert len(fname) == len(ind)
+                assert isinstance(fname, list) and len(fname) == len(ind)
                 for i, name in enumerate(fname):
                     assert isinstance(name, str)
                     rep = _fileCount(name, "results\\csvs")
@@ -856,27 +814,28 @@ class StandardMap:
                 if rep + newRep > 0:
                     fname[-1] += f"_{rep + newRep}"
                 fname[-1] = "results\\csvs\\" + fname[-1] + ".csv"
-        # Saving using savetxt
+        # Check for user keyword arguments
+        fmt = options.get("fmt", "%.10f")
+        delimiter = options.get("delimiter", "\t")
+        comments = options.get("comments", "")
         userHeader = options.get("header")
+        # Save using savetxt
         for i, j in enumerate(ind):
             run = self.runs[j]
             arr = run["run"].reshape((run["nSim"] * 2, run["nIters"] + 1))
             htxt = ",".join(["I,theta"] * run["nSim"])
-            if userHeader is None:
-                header = htxt
-            else:
-                header = userHeader
-            options["header"] = f"K = {run["K"]}\nseed = {run["seed"]}\n{header}"
-            if "fmt" not in options:
-                options["fmt"] = "%.10f"
-            if "delimiter" not in options:
-                options["delimiter"] = "\t"
-            if "comments" not in options:
-                options["comments"] = ""
-            np.savetxt(fname[i], arr.T, **options)
-            header = ""
+            header = userHeader if userHeader is not None else htxt
+            fullHeader = f"K = {run["K"]}\nseed = {run["seed"]}\n{header}"
+            np.savetxt(
+                fname[i],
+                arr.T,
+                fmt=fmt,
+                delimiter=delimiter,
+                header=fullHeader,
+                comments=comments,
+            )
 
-    def read(self, fname: str | list[str,], insert: str = "append", **options) -> None:
+    def read(self, fname: str | list[str], insert: str = "append", **options) -> None:
         """
         Reads in CSV files and adds them to the list of runs.
 
@@ -905,9 +864,8 @@ class StandardMap:
             `"skiprows"`: int [`np.loadtxt` option]
 
             The number of lines to skip, including headers and comments. This function
-            assumes the default header from `write` is used (3 lines). **CSVs without a
-            header denoting the kick value and RNG seed will raise an error, so the
-            minimum value is 2.**
+            assumes 1 header of the form "I,theta,..." (`skiprows=1`). **CSVs without a
+            header denoting the kick value and RNG seed will raise an error.**
 
             Other arguments can still be passed to `np.loadtxt`.
 
@@ -980,25 +938,24 @@ class StandardMap:
         >>> obj.read("myCSV", delimiter="++")   # Read in a CSV with a custom delimter
         >>> obj.read("myCSV2", skiprows=6)  # Read in a CSV with a custom header
         """
+        # Check for user keyword arguments
         if "delimiter" not in options:
             options["delimiter"] = "\t"
         if "skiprows" not in options:
-            options["skiprows"] = 3
-        # Read files
+            options["skiprows"] = 1
+        # Prepare for file inputs
         fileRuns = []
-        if isinstance(fname, str):
-            file = open(f"results\\csvs\\{fname}.csv")
-            kVal = float(file.readline().split(" ")[-1])
-            seedVal = file.readline().split(" ")[-1]
-            seedVal = seedVal.replace("\n", "")
-            if seedVal != "None":
-                seedVal = int(seedVal)
-            else:
-                seedVal = None
-            arr = np.loadtxt(
-                f"results\\csvs\\{fname}.csv",
-                **options,
-            )
+        fnames = [fname] if isinstance(fname, str) else fname
+        for name in fnames:
+            assert isinstance(name, str)
+            # Read the file content
+            with open(f"results\\csvs\\{name}.csv") as file:
+                k_line = file.readline()
+                kVal = float(k_line.split("=")[-1].strip())
+                seed_line = file.readline()
+                seedVal = seed_line.split("=")[-1].strip()
+                seedVal = int(seedVal) if seedVal != "None" else None
+                arr = np.loadtxt(file, **options)
             run = {
                 "K": kVal,
                 "nIters": arr.shape[0] - 1,
@@ -1007,32 +964,7 @@ class StandardMap:
                 "nSim": int(arr.shape[1] / 2),
             }
             fileRuns.append(run)
-        elif isinstance(fname, list):
-            for name in fname:
-                assert isinstance(name, str)
-                file = open(f"results\\csvs\\{name}.csv")
-                kVal = float(file.readline().split(" ")[-1])
-                seedVal = file.readline().split(" ")[-1]
-                seedVal = seedVal.replace("\n", "")
-                if seedVal != "None":
-                    seedVal = int(seedVal)
-                else:
-                    seedVal = None
-                arr = np.loadtxt(
-                    f"results\\csvs\\{name}.csv",
-                    **options,
-                )
-                run = {
-                    "K": kVal,
-                    "nIters": arr.shape[0] - 1,
-                    "seed": seedVal,
-                    "run": arr.T.reshape((int(arr.shape[1] / 2), 2, arr.shape[0])),
-                    "nSim": int(arr.shape[1] / 2),
-                }
-                fileRuns.append(run)
-        else:
-            raise Exception("Only a file name or a list of file names are allowed.")
-        # Add to current object
+        # Add runs to object
         if insert == "append":
             self.runs.extend(fileRuns)
         elif insert == "overwrite":

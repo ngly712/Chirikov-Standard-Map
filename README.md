@@ -1,4 +1,63 @@
-# Analyzing the Chaotic Behavior of the Chirikov Map
+# Analyzing the Chaotic Behavior of the Chirikov-Taylor Map
+### Created by Nguyen Ly, Enrique Lopez, Carlos Solis, and Hazel Moore.
+
+# Getting Started
+
+Follow these steps to set up your environment and install the required packages (NumPy, Matplotlib).
+
+### 1. Clone the Repository
+
+Open a terminal and run:
+```bash
+git clone https://github.com/ngly712/PHY329-Final-Project.git
+cd PHY329-Final-Project
+```
+
+### 2. Create a new virtual environment
+
+**Using venv:**
+```bash
+python3 -m venv map
+source map/bin/activate  # On Windows use: map\Scripts\activate
+```
+
+**Or using conda:**
+```bash
+conda create -n map
+conda activate map
+```
+
+### 3. Upgrade pip (recommended)
+```bash
+pip install --upgrade pip
+```
+
+### 4. Install Packages
+```bash
+pip install numpy
+pip install matplotlib
+```
+
+### 5. Install the Project in Editable Mode (optional)
+
+This repository comes with a `setup.py` file.
+
+If you plan to modify the code and want changes to take effect immediately, run:
+```bash
+pip install -e .
+```
+This step is optional but recommended for development.
+
+
+### 6. Import Relevant Modules
+
+```python
+import numpy as np
+from map.standardMap import StandardMap
+```
+
+# Introduction
+
 The [Taylor-Greene-Chirikov Map](https://mathworld.wolfram.com/StandardMap.html), or Standard Map, is a two-dimensional discrete-time recurrence relation that exhibits chaotic behavior. The system is as follows:
 
 > <p align="center">
@@ -30,24 +89,13 @@ To experimentally determine the onset of chaos, we will implement a collection o
 
 `map.ipynb` will contain the top-level report on our results
 
-# Planned Contributions
-- Nguyen: writing the `standardMap.py` class structure, utility functions, and unit tests, helping with the final `map.ipynb` report
-- Hazel: writing the final `map.ipynb` report, helping with the `standardMap.py` class structure
-- Enrique: writing the `mapEval.py` class structure, utility functions, and unit tests, helping with the `mapPlot.py` script
-- Carlos: writing the `mapPlot.py` script, helping with the `mapEval.py` class structure
+# Credits
+- Nguyen: `standardMap.py` class structure, utility functions, unit tests, front page README, and StandardMap README
+    - assisted with the in-class presentation
+- Hazel: in-class presentation
+- Enrique: `mapEval.py` class structure, utility functions, unit tests, and README plots
+    - helped with the `mapPlot.py` script
+- Carlos: `mapPlot.py` script
+    - helping with the `mapEval.py` class structure
 
-## Timeline
-1. Implement the `standardMap.py` class structure, utility functions, and unit tests
-2. Implement the `mapEval.py` class structure, utility functions, and unit tests
-3. Implement the `mapPlot.py` functions and generate the required plots
-4. Generate the final report in `map.ipynb`.
-
-Optional:
-
-5. Implement the kicked rotator as a separate class and make the Standard Map a subclass of it.
-6. Modify `mapEval.py` to account for additional variables like the kick strength and duration.
-7. Perform a similar analysis of the chaotic behavior for the kicked rotator.
-8. Add results to `map.ipynb`.
-
-# Using the Code
-For instructions on using the code and detailed plotting examples, please see `plots/README.md`.
+This started as a project for PHY 329 (Computational Physics) at UT Austin ([class website](https://www.wgilpin.com/cphy/)). The presentation we gave in-class on this repository is under `results/presentation`. Special thanks to Dr. William Gilpin (wgilpin@utexas.edu) for being an outstanding instructor and Alex Schmidt (alexcschmidt17@gmail.com) for being a supportive TA!

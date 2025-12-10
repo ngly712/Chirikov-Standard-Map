@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from plots.mapEval import MapEvaluator
 from typing import Optional
 
 
@@ -84,7 +85,7 @@ def plot_phase_generic(
 
 
 def plot_phase_tail(
-    evaluator: "MapEvaluator",
+    evaluator: MapEvaluator,
     run_idx: int = 0,
     n_tail: int = 100,
     point_size: float = 0.1,

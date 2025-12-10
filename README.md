@@ -183,7 +183,7 @@ for idx, K in enumerate(K_values):
 ## Diagnostic Plots
 
 ```python
-from plots.mapPlot import plot_IK_diagnostic as plotDiag
+from plots.mapPlot import plot_IK_diagnostic as plotDiagS
 # matplotlib defaults (optional for nicer plots)
 plt.rcParams["figure.dpi"] = 120
 plt.rcParams["axes.grid"] = False

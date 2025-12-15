@@ -161,7 +161,7 @@ n_tail = 1000                    # Number of late-time points per orbit to plot
 for idx, K in enumerate(K_values):
     title = rf"Standard Map Phase Space, $K = {K}$"
 
-    plot_phase_tail(
+    pltTail(
         evaluator = mEval,
         run_idx = idx,
         n_tail = n_tail,
@@ -183,7 +183,7 @@ for idx, K in enumerate(K_values):
 ## Diagnostic Plots
 
 ```python
-from plots.mapPlot import plot_IK_diagnostic as plotDiagS
+from plots.mapPlot import plot_IK_diagnostic as plotDiag
 # matplotlib defaults (optional for nicer plots)
 plt.rcParams["figure.dpi"] = 120
 plt.rcParams["axes.grid"] = False
@@ -208,7 +208,7 @@ for K in Ks:
 # wrap runs in a MapEvaluator
 evaluator = mEval(aMap.runs)
 
-plotDiagS(
+plotDiag(
     evaluator=evaluator,
     n_tail=n_tail,
     K_min=K_min,
@@ -277,6 +277,7 @@ In regards to code improvement, several changes would be favorable:
 - merging the two classes into one to reduce the number of redundant variables
 - adding support for other file formats (.xlsx, .txt, .bin)
 - merging runs with identical kick values and RNG seeds
+
 As for theoretical exploration, the following ideas arise:
 - expand to the classical [kicked rotator](https://www.sciencedirect.com/science/article/pii/S0960077905005485?via%3Dihub) system upon which the Standard Map is derived
 - apply the Standard Map to the physical examples listed [above](#the-standard-map)

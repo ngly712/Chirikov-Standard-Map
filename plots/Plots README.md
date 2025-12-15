@@ -117,7 +117,7 @@ print(f"Completed {len(aMap.runs)} runs with K in [{K_min}, {K_max}].")
 ### Plot Diagnostic Sweep
 
 ```python
-plotDiagS(
+plotDiag(
     evaluator=evaluator,
     n_tail=n_tail,
     K_min=K_min,
